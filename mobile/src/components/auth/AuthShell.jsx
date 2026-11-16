@@ -45,7 +45,44 @@ export default function AuthShell({ title, subtitle, children }) {
                 </Text>
               </View>
 
-              {wide && <Text style={[styles.headline, { color: colors.text }]}>Order ahead or book a table.</Text>}
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>A LITTLE TIME FOR YOURSELF</Text>
+
+              <Text style={[styles.headline, { color: colors.text, fontFamily: FONTS.serif }, compact && styles.headlineCompact, wide && styles.headlineWide]}>
+                Slow down.{'\n'}Savor the moment.
+              </Text>
+
+              {(!compact || wide) && (
+                <Text style={[styles.description, { color: colors.textMid }]}>
+                  A cozy sanctuary for your daily ritual. Discover crafted roasts, reserve your favorite quiet corner, and make a little time for yourself.
+                </Text>
+              )}
+
+              {wide && (
+                <View style={styles.features}>
+                  {[
+                    ['cafe-outline', 'A menu worth savoring', 'Artisanal roasts and freshly baked treats.'],
+                    ['sparkles-outline', 'A gentle companion', 'Helpful menu suggestions suited to your mood.'],
+                    ['calendar-outline', 'Save your seat', 'Reserve a peaceful table before you arrive.'],
+                  ].map(([icon, label, detail]) => (
+                    <View key={label} style={styles.feature}>
+                      <View style={[styles.featureIcon, { backgroundColor: colors.surfaceAlt }]}>
+                        <Ionicons name={icon} size={20} color={colors.primary} />
+                      </View>
+                      <View style={styles.fill}>
+                        <Text style={[styles.featureTitle, { color: colors.text }]}>{label}</Text>
+                        <Text style={[styles.featureDetail, { color: colors.textLight }]}>{detail}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {wide && (
+                <View style={styles.note}>
+                  <View style={[styles.dot, { backgroundColor: colors.accent }]} />
+                  <Text style={[styles.noteText, { color: colors.textLight }]}>A quiet cafe moment awaits</Text>
+                </View>
+              )}
             </View>
 
             <View
@@ -113,11 +150,73 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.8,
   },
+  eyebrow: {
+    fontSize: 9.5,
+    letterSpacing: 2,
+    fontWeight: '700',
+    fontFamily: FONTS.sans,
+  },
   headline: {
     fontSize: 28,
     lineHeight: 34,
     letterSpacing: -1,
     fontWeight: '700',
+  },
+  headlineCompact: {
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: -0.6,
+  },
+  headlineWide: {
+    fontSize: 52,
+    lineHeight: 58,
+  },
+  description: {
+    fontSize: 14,
+    lineHeight: 22,
+    maxWidth: 420,
+    fontFamily: FONTS.sans,
+  },
+  features: {
+    gap: 18,
+    marginTop: 20,
+  },
+  feature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  featureIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featureTitle: {
+    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: FONTS.sans,
+  },
+  featureDetail: {
+    fontSize: 12,
+    marginTop: 2,
+    fontFamily: FONTS.sans,
+  },
+  note: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  noteText: {
+    fontSize: 12,
+    fontFamily: FONTS.sans,
   },
   card: {
     padding: 24,

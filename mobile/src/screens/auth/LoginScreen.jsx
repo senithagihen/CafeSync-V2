@@ -40,7 +40,7 @@ export default function LoginScreen({ navigation }) {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to manage your orders and reservations."
+      subtitle="Take a breath, sign in, and enjoy your quiet cafe corner."
     >
       {!!error && (
         <View

@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import React, { useContext } from 'react';
 import { DefaultTheme, DarkTheme, NavigationContainer, NavigationIndependentTree } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
@@ -7,18 +6,6 @@ import AuthNavigator from './AuthNavigator';
 import CustomerNavigator from './CustomerNavigator';
 import AdminNavigator from './AdminNavigator';
 import SplashScreen from '../components/SplashScreen';
-
-const customerLinks = {
-  prefixes: [],
-  config: {
-    initialRouteName: 'CustomerTabs',
-    screens: {
-      CustomerTabs: { screens: { Home: '', Orders: 'orders', Reservations: 'reservations', Payments: 'payments', Profile: 'profile' } },
-      SavedCards: 'saved-cards',
-      Assistant: 'assistant',
-    },
-  },
-};
 
 const AppNavigator = () => {
   const { user, loading, isAdmin } = useContext(AuthContext);
@@ -43,8 +30,7 @@ const AppNavigator = () => {
 
   return (
     <NavigationIndependentTree>
-      <NavigationContainer key={user ? (isAdmin ? 'admin' : 'customer') : 'guest'} theme={navigationTheme}
-        linking={Platform.OS === 'web' && user && !isAdmin ? customerLinks : undefined}>
+      <NavigationContainer theme={navigationTheme}>
         {!user ? (
           <AuthNavigator />
         ) : isAdmin ? (

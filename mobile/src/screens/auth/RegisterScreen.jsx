@@ -50,8 +50,8 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <AuthShell
-      title="Create an account"
-      subtitle="Enter your details to start ordering."
+      title="Make yourself at home"
+      subtitle="Create an account to order fresh roasts, book quiet tables, and save your favorites."
     >
       <TouchableOpacity
         accessibilityRole="button"
