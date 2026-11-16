@@ -38,7 +38,7 @@ export const ThemeProvider = ({ children }) => {
         const link = document.createElement('link');
         link.id = fontLinkId;
         link.rel = 'stylesheet';
-        link.href = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@300;400;500;600;700;800&display=swap';
+        link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap';
         document.head.appendChild(link);
       }
 

@@ -7,18 +7,25 @@
 import { Platform } from 'react-native';
 
 export const FONTS = {
-  // Headings: Refined serif stack with Fraunces / Playfair / Georgia fallback
+  // Headings: Modern, clean Inter font stack
   serif: Platform.select({
-    ios: 'Georgia',
-    android: 'serif',
-    web: "'Fraunces', 'Playfair Display', Georgia, serif",
-    default: 'serif',
+    ios: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    android: 'Inter, Roboto, sans-serif',
+    web: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    default: 'sans-serif',
   }),
-  // Body: Clean, accessible sans-serif stack
+  // Clean, modern Inter font stack
+  inter: Platform.select({
+    ios: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    android: 'Inter, Roboto, sans-serif',
+    web: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    default: 'sans-serif',
+  }),
+  // Body: Clean, accessible Inter sans-serif stack
   sans: Platform.select({
-    ios: 'System',
-    android: 'sans-serif',
-    web: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    ios: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    android: 'Inter, Roboto, sans-serif',
+    web: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     default: 'sans-serif',
   }),
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,14 +22,14 @@ const TAB_CONFIG = {
   Payments: { icon: 'card', key: 'accent' },
 };
 
-const TabIcon = ({ name, focused, colors }) => {
+const TabIcon = ({ name, focused, colors, isDesktop }) => {
   const config = TAB_CONFIG[name];
   const activeColor = colors[config.key] || colors.primary;
   return (
-    <View style={[styles.iconWrap, focused && { backgroundColor: colors.surfaceAlt }]}>
+    <View style={[styles.iconWrap, isDesktop && styles.iconWrapDesktop, focused && { backgroundColor: colors.surfaceAlt }]}>
       <Ionicons
         name={focused ? config.icon : `${config.icon}-outline`}
-        size={20}
+        size={isDesktop ? 18 : 20}
         color={focused ? activeColor : colors.textLight}
       />
     </View>
@@ -38,7 +38,16 @@ const TabIcon = ({ name, focused, colors }) => {
 
 const AdminNavigator = () => {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { colors } = useTheme();
+
+  const isDesktop = Platform.OS === 'web' && width >= 768;
+  const tabHeight = isDesktop
+    ? 58
+    : Platform.select({ web: 82, default: Math.max(76, 60 + insets.bottom) });
+  const tabPaddingBottom = isDesktop
+    ? 0
+    : Platform.select({ web: 18, default: Math.max(14, insets.bottom + 8) });
 
   return (
     <Tab.Navigator
@@ -46,11 +55,16 @@ const AdminNavigator = () => {
         const config = TAB_CONFIG[route.name];
         const activeColor = colors[config.key] || colors.primary;
         return {
-          tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} colors={colors} />,
+          tabBarPosition: isDesktop ? 'top' : 'bottom',
+          tabBarLabelPosition: isDesktop ? 'beside-icon' : 'below-icon',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={route.name} focused={focused} colors={colors} isDesktop={isDesktop} />
+          ),
           tabBarLabel: ({ focused }) => (
             <Text
               style={[
                 styles.tabLabel,
+                isDesktop && styles.tabLabelDesktop,
                 { color: focused ? activeColor : colors.textLight },
                 focused && { fontWeight: '700' },
               ]}
@@ -64,17 +78,16 @@ const AdminNavigator = () => {
             {
               backgroundColor: colors.surface,
               borderTopColor: colors.divider,
-              height: Platform.select({
-                web: 76,
-                default: Math.max(72, 60 + insets.bottom),
-              }),
-              paddingBottom: Platform.select({
-                web: 14,
-                default: Math.max(12, insets.bottom + 6),
-              }),
+              borderBottomColor: colors.divider,
+              borderTopWidth: isDesktop ? 0 : 1,
+              borderBottomWidth: isDesktop ? 1 : 0,
+              height: tabHeight,
+              paddingBottom: tabPaddingBottom,
+              paddingTop: isDesktop ? 0 : 6,
             },
+            isDesktop && styles.tabBarDesktop,
           ],
-          tabBarItemStyle: styles.tabItem,
+          tabBarItemStyle: [styles.tabItem, isDesktop && styles.tabItemDesktop],
         };
       }}
     >
@@ -98,12 +111,30 @@ const styles = StyleSheet.create({
       web: { boxShadow: '0 -4px 16px rgba(43, 24, 16, 0.05)' },
     }),
   },
+  tabBarDesktop: {
+    paddingTop: 0,
+    paddingBottom: 0,
+    width: '100%',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 10px rgba(43, 24, 16, 0.06)',
+      },
+    }),
+  },
   tabItem: {
     paddingTop: 2,
     paddingBottom: 2,
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: TOUCH_TARGET.min,
+  },
+  tabItemDesktop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    minHeight: 48,
   },
   iconWrap: {
     width: 38,
@@ -112,6 +143,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  iconWrapDesktop: {
+    width: 28,
+    height: 28,
+    marginRight: 4,
+  },
   tabLabel: {
     fontSize: 10,
     lineHeight: 13,
@@ -119,6 +155,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontFamily: FONTS.sans,
     textAlign: 'center',
+  },
+  tabLabelDesktop: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 0,
+    fontWeight: '600',
+    textAlign: 'left',
   },
 });
 
