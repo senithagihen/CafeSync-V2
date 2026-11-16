@@ -11,6 +11,7 @@ import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
 import CoffeeLoader from '../../components/common/CoffeeLoader';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const TIMES = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'];
 
@@ -30,6 +31,7 @@ const ReservationScreen = () => {
   const formAnim = useRef(new Animated.Value(0)).current;
 
   const STATUS_MAP = {
+    Expired: { color: colors.textLight, icon: 'time-outline' },
     Pending: { color: colors.warning, icon: 'time-outline' },
     Confirmed: { color: colors.success, icon: 'checkmark-circle-outline' },
     Cancelled: { color: colors.danger, icon: 'close-circle-outline' },
@@ -116,14 +118,17 @@ const ReservationScreen = () => {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
         <View style={styles.headerContent}>
-          <View>
-            <Text style={[styles.headerSup, { color: colors.accent }]}>QUIET CORNERS</Text>
-            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-              Table Bookings
-            </Text>
-            <Text style={[styles.headerSub, { color: colors.textLight }]}>
-              {reservations.length} {reservations.length === 1 ? 'reservation' : 'reservations'} saved
-            </Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo />
+            <View style={styles.headerTitles}>
+              <Text style={[styles.headerSup, { color: colors.accent }]}>QUIET CORNERS</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+                Table Bookings
+              </Text>
+              <Text style={[styles.headerSub, { color: colors.textLight }]}>
+                {reservations.length} {reservations.length === 1 ? 'reservation' : 'reservations'} saved
+              </Text>
+            </View>
           </View>
           <TouchableOpacity
             style={[
@@ -471,6 +476,16 @@ const styles = StyleSheet.create({
     maxWidth: 1120,
     width: '100%',
     alignSelf: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 10,
+  },
+  headerTitles: {
+    flex: 1,
   },
   headerSup: {
     fontSize: 10,

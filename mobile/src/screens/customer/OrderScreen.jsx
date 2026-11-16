@@ -1,3 +1,4 @@
+import { orderReference, itemCount } from '../../utils/orderDisplay';
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity,
@@ -12,6 +13,7 @@ import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
 import CoffeeLoader from '../../components/common/CoffeeLoader';
 import { OrderCardSkeleton } from '../../components/common/SkeletonLoader';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const OrderScreen = ({ navigation }) => {
   const { colors } = useTheme();
@@ -92,7 +94,7 @@ const OrderScreen = ({ navigation }) => {
       </View>
 
       <Text style={[styles.activeTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-        Order #{order._id.slice(-5).toUpperCase()}
+        Order #{orderReference(order._id)}
       </Text>
 
       {/* Item List */}
@@ -153,10 +155,10 @@ const OrderScreen = ({ navigation }) => {
       </View>
       <View style={styles.historyInfo}>
         <Text style={[styles.historyNum, { color: colors.text, fontFamily: FONTS.serif }]}>
-          {item.orderType} #{item._id.slice(-5).toUpperCase()}
+          {item.orderType} #{orderReference(item._id)}
         </Text>
         <Text style={[styles.historyMeta, { color: colors.textMid }]}>
-          {item.items?.length || 0} items • Rs. {item.totalAmount?.toFixed(2)}
+          {itemCount(item.items?.length)} • Rs. {item.totalAmount?.toFixed(2)}
         </Text>
         <Text style={[styles.historyDate, { color: colors.textLight }]}>
           {new Date(item.createdAt).toLocaleDateString()}
@@ -183,11 +185,14 @@ const OrderScreen = ({ navigation }) => {
         ]}
       >
         <View style={styles.headerTop}>
-          <View>
-            <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR ORDERS</Text>
-            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-              Recent Brews
-            </Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo />
+            <View style={styles.headerTitles}>
+              <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR ORDERS</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+                Recent Brews
+              </Text>
+            </View>
           </View>
           <TouchableOpacity
             style={[styles.refreshBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
@@ -271,6 +276,16 @@ const styles = StyleSheet.create({
     maxWidth: 1120,
     width: '100%',
     alignSelf: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 10,
+  },
+  headerTitles: {
+    flex: 1,
   },
   headerSup: {
     fontSize: 10,

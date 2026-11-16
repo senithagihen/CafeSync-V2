@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { adminInventoryAPI } from '../../api';
 import apiClient from '../../api/client';
 import { COLORS } from '../../constants/colors';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const CATEGORIES = ['Coffee', 'Tea', 'Snacks', 'Desserts', 'Beverages', 'Other'];
 const CAT_ICONS = { Coffee: 'cafe', Tea: 'leaf', Snacks: 'fast-food', Desserts: 'ice-cream', Beverages: 'wine', Other: 'restaurant' };
@@ -126,10 +127,10 @@ const InventoryScreen = () => {
         </View>
       </View>
       <View style={styles.itemActions}>
-        <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(item)}>
+        <TouchableOpacity accessibilityRole="button" style={styles.editBtn} accessibilityLabel={`Edit ${item.name}`} onPress={() => openEdit(item)}>
           <Ionicons name="create-outline" size={18} color={COLORS.info} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item._id)}>
+        <TouchableOpacity accessibilityRole="button" style={styles.deleteBtn} accessibilityLabel={`Delete ${item.name}`} onPress={() => handleDelete(item._id)}>
           <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
         </TouchableOpacity>
       </View>
@@ -139,13 +140,15 @@ const InventoryScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerCircle} />
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerTitle}>Inventory</Text>
-            <Text style={styles.headerSub}>{items.length} menu items</Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo targetScreen="Dashboard" />
+            <View style={styles.headerTitles}>
+              <Text style={styles.headerTitle}>Inventory</Text>
+              <Text style={styles.headerSub}>{items.length} menu items</Text>
+            </View>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
+          <TouchableOpacity accessibilityRole="button" style={styles.addBtn} onPress={openAdd}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Ionicons name="add" size={18} color={COLORS.white} />
               <Text style={styles.addBtnText}>Add Item</Text>
@@ -180,7 +183,7 @@ const InventoryScreen = () => {
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{editing ? 'Edit Item' : 'Add Item'}</Text>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setShowModal(false)}>
+              <TouchableOpacity accessibilityRole="button" style={styles.closeBtn} accessibilityLabel={`Close item form`} onPress={() => setShowModal(false)}>
                 <Ionicons name="close" size={24} color={COLORS.textLight} />
               </TouchableOpacity>
             </View>
@@ -224,7 +227,7 @@ const InventoryScreen = () => {
               <Text style={styles.label}>Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
                 {CATEGORIES.map(c => (
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     key={c}
                     style={[styles.catChip, form.category === c && styles.catChipActive]}
                     onPress={() => setField('category', c)}
@@ -235,7 +238,7 @@ const InventoryScreen = () => {
                 ))}
               </ScrollView>
 
-              <TouchableOpacity style={[styles.submitBtn, submitting && { opacity: 0.7 }]} onPress={handleSubmit} disabled={submitting}>
+              <TouchableOpacity accessibilityRole="button" style={[styles.submitBtn, submitting && { opacity: 0.7 }]} onPress={handleSubmit} disabled={submitting}>
                 {submitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitText}>{editing ? 'Update Item ✓' : 'Add Item ✓'}</Text>}
               </TouchableOpacity>
             </ScrollView>
@@ -249,22 +252,19 @@ const InventoryScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
-    backgroundColor: COLORS.warning,
+    backgroundColor: COLORS.background,
     paddingTop: Platform.OS === 'android' ? 36 : 16,
     paddingBottom: 22, paddingHorizontal: 20,
     borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: COLORS.warning, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
-      android: { elevation: 6 },
-      web: { boxShadow: '0 6px 12px rgba(245,158,11,0.3)' },
-    }),
   },
   headerCircle: { position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: COLORS.white },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  addBtn: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 10 },
+  headerTitles: { flex: 1 },
+  headerTitle: { fontSize: 24, fontWeight: '900', color: COLORS.text },
+  headerSub: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
+  addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   addBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 13 },
   list: { padding: 16, gap: 10, paddingBottom: 130 },
   itemCard: {

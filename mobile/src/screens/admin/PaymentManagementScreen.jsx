@@ -7,6 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { adminPaymentsAPI } from '../../api';
 import { COLORS } from '../../constants/colors';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const STATUS_CONFIG = {
   Pending:   { color: COLORS.warning, icon: 'time-outline' },
@@ -67,7 +68,7 @@ const PaymentManagementScreen = () => {
 
         {p.status === 'Pending' && (
           <View style={styles.btnRow}>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={[styles.actionBtn, { backgroundColor: COLORS.success }]}
               onPress={() => updateStatus(p._id, 'Completed')}
               disabled={!!updating}
@@ -76,7 +77,7 @@ const PaymentManagementScreen = () => {
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <Text style={styles.actionText}>Approve</Text>}
             </TouchableOpacity>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={[styles.actionBtn, { backgroundColor: COLORS.dangerLight }]}
               onPress={() => updateStatus(p._id, 'Failed')}
               disabled={!!updating}
@@ -94,11 +95,13 @@ const PaymentManagementScreen = () => {
   const renderHeader = () => (
     <View style={styles.headerSection}>
       <View style={styles.hero}>
-        <View style={styles.headerCircle} />
         <View style={styles.heroContent}>
-          <View>
-            <Text style={styles.heroTitle}>Payment Admin</Text>
-            <Text style={styles.heroSub}>{payments.length} total transactions</Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo targetScreen="Dashboard" />
+            <View style={styles.headerTitles}>
+              <Text style={styles.heroTitle}>Payment Admin</Text>
+              <Text style={styles.heroSub}>{payments.length} total transactions</Text>
+            </View>
           </View>
           <View style={styles.revenueBadge}>
             <Text style={styles.revLabel}>Revenue</Text>
@@ -122,7 +125,7 @@ const PaymentManagementScreen = () => {
             const active = filter === item;
             const cfg = STATUS_CONFIG[item] || { color: COLORS.secondary, icon: 'card-outline' };
             return (
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button"
                 key={item}
                 style={[styles.chip, active && { backgroundColor: cfg.color, borderColor: cfg.color }]}
                 onPress={() => setFilter(item)}
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
   
   headerSection: { marginBottom: 10 },
   hero: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.background,
     paddingTop: Platform.OS === 'android' ? 40 : 20,
     paddingBottom: 35, paddingHorizontal: 24,
     borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
@@ -180,11 +183,13 @@ const styles = StyleSheet.create({
   },
   headerCircle: { position: 'absolute', top: -30, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)' },
   heroContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heroTitle: { fontSize: 26, fontWeight: '900', color: COLORS.white },
-  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  revenueBadge: { alignItems: 'flex-end', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  revLabel: { fontSize: 10, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', fontWeight: '700' },
-  revValue: { fontSize: 16, fontWeight: '900', color: COLORS.white },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 10 },
+  headerTitles: { flex: 1 },
+  heroTitle: { fontSize: 26, fontWeight: '900', color: COLORS.text },
+  heroSub: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
+  revenueBadge: { alignItems: 'flex-end', backgroundColor: COLORS.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  revLabel: { fontSize: 10, color: COLORS.textLight, textTransform: 'uppercase', fontWeight: '700' },
+  revValue: { fontSize: 16, fontWeight: '700', color: COLORS.primary },
 
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginTop: -20 },
   statCard: {

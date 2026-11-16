@@ -1,15 +1,17 @@
+import { orderReference, itemCount } from '../../utils/orderDisplay';
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, FlatList,
   TouchableOpacity, ActivityIndicator, Platform, ScrollView, RefreshControl,
-  Dimensions
+
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { adminOrdersAPI, adminReservationsAPI } from '../../api';
 import { COLORS } from '../../constants/colors';
 import { Alert } from '../../utils/alert';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
-const { width } = Dimensions.get('window');
+
 
 // Standardized User-Friendly Color Palette using Design Tokens
 const THEME = {
@@ -38,6 +40,7 @@ const buildTables = (orders, reservations) =>
   });
 
 const RES_STATUS_CONFIG = {
+  Expired: { color: COLORS.textLight, icon: 'time-outline' },
   Pending: { color: THEME.Reserved.main, icon: 'time-outline' },
   Confirmed: { color: THEME.Available.main, icon: 'checkmark-circle-outline' },
   Cancelled: { color: THEME.Occupied.main, icon: 'close-circle-outline' },
@@ -51,7 +54,7 @@ const TableManagementScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState('Map');
   const [selectedTable, setSelectedTable] = useState(null);
-  const [resFilter, setResFilter] = useState('All');
+  const [resFilter, setResFilter] = useState('Upcoming');
   const [updatingRes, setUpdatingRes] = useState(null);
 
   useEffect(() => {
@@ -105,7 +108,10 @@ const TableManagementScreen = () => {
   };
 
   const resStatuses = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
-  const filteredReservations = resFilter === 'All' ? reservations : reservations.filter(r => r.status === resFilter);
+  const upcoming = reservations.filter(r => ['Confirmed', 'Pending'].includes(r.status) && !r.pastSlot);
+  const filteredReservations = resFilter === 'Upcoming' ? upcoming
+    : resFilter === 'History' ? reservations.filter(r => !upcoming.includes(r))
+    : resFilter === 'All' ? reservations : reservations.filter(r => r.status === resFilter);
 
   const renderReservationItem = ({ item: r }) => {
     const color = RES_STATUS_CONFIG[r.status]?.color || COLORS.textLight;
@@ -122,9 +128,9 @@ const TableManagementScreen = () => {
           <View style={[styles.resBadge, { backgroundColor: color + '12' }]}>
             <Text style={[styles.resBadgeText, { color }]}>{r.status}</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity accessibilityRole="button"
             style={styles.resTrashBtn} 
-            onPress={() => handleDeleteRes(r._id)}
+            accessibilityLabel={`Delete reservation for table ${r.tableNumber}`} onPress={() => handleDeleteRes(r._id)}
             disabled={!!updatingRes}
           >
             <Ionicons name="trash-outline" size={18} color={THEME.Occupied.main} />
@@ -155,7 +161,7 @@ const TableManagementScreen = () => {
         <View style={styles.resBtnRow}>
           {r.status === 'Pending' && (
             <>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button"
                 style={[styles.resActionBtn, { backgroundColor: THEME.Available.main, flex: 1 }]}
                 onPress={() => updateResStatus(r._id, 'Confirmed')}
                 disabled={!!updatingRes}
@@ -164,7 +170,7 @@ const TableManagementScreen = () => {
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Text style={styles.resActionText}>Confirm</Text>}
               </TouchableOpacity>
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button"
                 style={[styles.resActionBtn, { backgroundColor: THEME.Occupied.main, flex: 1 }]}
                 onPress={() => updateResStatus(r._id, 'Cancelled')}
                 disabled={!!updatingRes}
@@ -176,7 +182,7 @@ const TableManagementScreen = () => {
             </>
           )}
           {r.status === 'Confirmed' && (
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={[styles.resActionBtn, { backgroundColor: COLORS.textLight, width: '100%' }]}
               onPress={() => updateResStatus(r._id, 'Completed')}
               disabled={!!updatingRes}
@@ -193,30 +199,32 @@ const TableManagementScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.header, { backgroundColor: viewMode === 'Map' ? COLORS.secondary : THEME.Available.main }]}>
-        <View style={styles.headerCircle} />
+      <View style={[styles.header, { backgroundColor: COLORS.background }]}>
         <View style={styles.headerTitleRow}>
-          <View>
-            <Text style={styles.headerTitle}>{viewMode === 'Map' ? 'Floor Manager' : 'Reservations'}</Text>
-            <Text style={styles.headerSub}>
-              {viewMode === 'Map' ? 'Monitor live table occupancy' : `${reservations.length} bookings scheduled`}
-            </Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo targetScreen="Dashboard" />
+            <View style={styles.headerTitles}>
+              <Text style={styles.headerTitle}>{viewMode === 'Map' ? 'Floor Manager' : 'Reservations'}</Text>
+              <Text style={styles.headerSub}>
+                {viewMode === 'Map' ? 'Monitor live table occupancy' : `${upcoming.length} upcoming · ${reservations.length} total`}
+              </Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.switcher}>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.switchBtn, viewMode === 'Map' && styles.switchBtnActive]}
             onPress={() => setViewMode('Map')}
           >
-            <Ionicons name="grid" size={14} color={viewMode === 'Map' ? COLORS.secondary : '#fff'} />
+            <Ionicons name="grid" size={14} color={viewMode === 'Map' ? COLORS.secondary : COLORS.textMid} />
             <Text style={[styles.switchText, viewMode === 'Map' && styles.switchTextActive]}>Map</Text>
           </TouchableOpacity>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.switchBtn, viewMode === 'Reservations' && styles.switchBtnActive]}
             onPress={() => setViewMode('Reservations')}
           >
-            <Ionicons name="calendar" size={14} color={viewMode === 'Reservations' ? THEME.Available.main : '#fff'} />
+            <Ionicons name="calendar" size={14} color={viewMode === 'Reservations' ? THEME.Available.main : COLORS.textMid} />
             <Text style={[styles.switchText, viewMode === 'Reservations' && styles.switchTextActive]}>List</Text>
           </TouchableOpacity>
         </View>
@@ -244,14 +252,14 @@ const TableManagementScreen = () => {
                 const info = THEME[table.status];
                 const isSelected = selectedTable?.num === table.num;
                 return (
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     key={table.num}
                     style={[
                       styles.tableCell,
                       { backgroundColor: info.bg, borderColor: isSelected ? info.main : 'rgba(0,0,0,0.08)' },
                       isSelected && { borderWidth: 2.5 }
                     ]}
-                    onPress={() => setSelectedTable(isSelected ? null : table)}
+                    accessibilityLabel={`Table ${table.num}, ${table.status}`} onPress={() => setSelectedTable(isSelected ? null : table)}
                     activeOpacity={0.7}
                   >
                     <View style={[styles.statusTag, { backgroundColor: info.main }]}>
@@ -279,8 +287,8 @@ const TableManagementScreen = () => {
                 {selectedTable.order ? (
                   <View style={styles.panelBody}>
                      <Text style={styles.panelLabel}>Active Order</Text>
-                     <Text style={styles.panelMain}>#{selectedTable.order._id?.slice(-6).toUpperCase()} · {selectedTable.order.customer?.name || 'Walk-in'}</Text>
-                     <Text style={styles.panelSub}>{selectedTable.order.items?.length} items · Rs. {selectedTable.order.totalAmount?.toFixed(0)}</Text>
+                     <Text style={styles.panelMain}>#{orderReference(selectedTable.order._id)} · {selectedTable.order.customer?.name || 'Walk-in'}</Text>
+                     <Text style={styles.panelSub}>{itemCount(selectedTable.order.items?.length)} · Rs. {selectedTable.order.totalAmount?.toFixed(0)}</Text>
                   </View>
                 ) : selectedTable.reservation ? (
                   <View style={styles.panelBody}>
@@ -299,11 +307,11 @@ const TableManagementScreen = () => {
           <>
             <View style={{ paddingVertical: 12 }}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterList}>
-                {['All', ...resStatuses].map(item => {
+                {['Upcoming', 'History', 'All', ...resStatuses].map(item => {
                   const active = resFilter === item;
                   const color = RES_STATUS_CONFIG[item]?.color || THEME.Available.main;
                   return (
-                    <TouchableOpacity
+                    <TouchableOpacity accessibilityRole="button"
                       key={item}
                       style={[styles.chip, active && { backgroundColor: color, borderColor: color }]}
                       onPress={() => setResFilter(item)}
@@ -344,12 +352,14 @@ const styles = StyleSheet.create({
   },
   headerCircle: { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)' },
   headerTitleRow: { marginBottom: 20 },
-  headerTitle: { fontSize: 28, fontWeight: '900', color: COLORS.white },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerTitles: { flex: 1 },
+  headerTitle: { fontSize: 28, fontWeight: '900', color: COLORS.text },
+  headerSub: { fontSize: 14, color: COLORS.textLight, marginTop: 4 },
   switcher: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.12)', borderRadius: 14, padding: 4 },
   switchBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12, flexDirection: 'row', justifyContent: 'center', gap: 8 },
   switchBtnActive: { backgroundColor: COLORS.white },
-  switchText: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+  switchText: { fontSize: 14, fontWeight: '700', color: COLORS.textMid },
   switchTextActive: { color: COLORS.text, fontWeight: '900' },
 
   legend: { flexDirection: 'row', justifyContent: 'center', gap: 20, paddingVertical: 20 },
@@ -359,7 +369,7 @@ const styles = StyleSheet.create({
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 10 },
   tableCell: {
-    width: (width - 32 - 30) / 4, aspectRatio: 0.95,
+    flexBasis: '22%', flexGrow: 1, maxWidth: 160, aspectRatio: 0.95,
     borderRadius: 10, padding: 8, justifyContent: 'center', alignItems: 'center',
     borderWidth: 1.5,
     ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 5 }, android: { elevation: 1 } }),

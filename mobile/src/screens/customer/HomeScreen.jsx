@@ -1,9 +1,11 @@
+import { itemCount } from '../../utils/orderDisplay';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView,
   ActivityIndicator, Platform, useWindowDimensions, RefreshControl,
   Image, Modal, TextInput, Animated,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -82,7 +84,6 @@ const HomeScreen = ({ navigation, route }) => {
   const { width: windowWidth } = useWindowDimensions();
 
   const scrollRef = useRef(null);
-  const menuHeaderRef = useRef(null);
   const cartBounceAnim = useRef(new Animated.Value(1)).current;
 
   const [orders, setOrders] = useState([]);
@@ -106,6 +107,14 @@ const HomeScreen = ({ navigation, route }) => {
   const [bookedSlots, setBookedSlots] = useState([]);
   const [savedCards, setSavedCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
+  const resumeCheckout = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (resumeCheckout.current) {
+      resumeCheckout.current = false;
+      setShowCheckout(true);
+    }
+  }, []));
+  const [cardError, setCardError] = useState(false);
   const [loadingCards, setLoadingCards] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
@@ -126,6 +135,7 @@ const HomeScreen = ({ navigation, route }) => {
 
   const fetchSavedCards = useCallback(async () => {
     setLoadingCards(true);
+    setCardError(false);
     try {
       const res = await cardsAPI.getAll();
       const cards = res.data.data || [];
@@ -133,7 +143,8 @@ const HomeScreen = ({ navigation, route }) => {
       const def = cards.find(c => c.isDefault) || cards[0];
       setSelectedCard(current => cards.find(card => card._id === current?._id) || def || null);
     } catch (e) {
-      console.log(e?.message);
+      setCardError(true);
+      setSelectedCard(null);
     } finally {
       setLoadingCards(false);
     }
@@ -210,7 +221,6 @@ const HomeScreen = ({ navigation, route }) => {
           amount: cartTotal,
           paymentMethod: 'Card',
           cardId: selectedCard._id,
-          transactionId: `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         });
       }
 
@@ -277,9 +287,6 @@ const HomeScreen = ({ navigation, route }) => {
     ]).start();
   };
 
-  const scrollToMenu = () => {
-    scrollRef.current?.scrollTo({ y: 380, animated: true });
-  };
 
   const activeOrders = orders.filter((o) => !['Completed', 'Cancelled'].includes(o.status));
   const pendingRes = reservations.filter((r) => ['Pending', 'Confirmed'].includes(r.status));
@@ -299,7 +306,13 @@ const HomeScreen = ({ navigation, route }) => {
       {/* Top Brand Bar */}
       <View style={[styles.topBar, { backgroundColor: colors.background, borderBottomColor: colors.divider }]}>
         <View style={styles.topBarInner}>
-          <View style={styles.brand}>
+          <TouchableOpacity
+            style={styles.brand}
+            activeOpacity={0.78}
+            onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+            accessibilityRole="button"
+            accessibilityLabel="CafeSync Logo, scroll to top"
+          >
             <View style={[styles.brandMark, { backgroundColor: colors.primary }]}>
               <Ionicons name="cafe" size={20} color={colors.surface} />
             </View>
@@ -308,9 +321,8 @@ const HomeScreen = ({ navigation, route }) => {
                 Cafe<Text style={{ color: colors.accent }}>Sync</Text>
                 <Text style={{ color: colors.copper }}>.</Text>
               </Text>
-              <Text style={[styles.brandSub, { color: colors.textLight }]}>A little time for yourself</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.topBarActions}>
             <TouchableOpacity
@@ -351,108 +363,31 @@ const HomeScreen = ({ navigation, route }) => {
           </Text>
         </View>
 
-        {/* HERO / LANDING: Emotional Centerpiece */}
-        <View
-          style={[
-            styles.hero,
-            { backgroundColor: isDark ? colors.surfaceAlt : colors.surfaceAlt, borderColor: colors.divider },
-            SHADOWS.card.web,
-            windowWidth >= 700 && styles.heroWide,
-          ]}
-        >
-          <View style={styles.heroCopy}>
-            <View style={styles.taglineBadge}>
-              <Ionicons name="sparkles" size={12} color={colors.accent} />
-              <Text style={[styles.eyebrow, { color: colors.accent }]}>YOUR SLOW CAFE MOMENT</Text>
-            </View>
-
-            {/* Tagline as the emotional centerpiece */}
-            <Text
-              style={[
-                styles.heroTitle,
-                { color: colors.text, fontFamily: FONTS.serif },
-                windowWidth >= 700 && { fontSize: 44, lineHeight: 52 },
-              ]}
-            >
-              A little time{'\n'}for yourself.
-            </Text>
-
-            <Text style={[styles.heroDescription, { color: colors.textMid }]}>
-              Handcrafted roasts, warm bakery treats, and a quiet corner to unwind. Order ahead or find your cozy table.
-            </Text>
-
-            <View style={styles.heroActionRow}>
-              <TouchableOpacity
-                style={[styles.heroPrimaryBtn, { backgroundColor: colors.primary }, SHADOWS.subtle.web]}
-                onPress={scrollToMenu}
-                accessibilityRole="button"
-                accessibilityLabel="Explore the cafe menu"
-                activeOpacity={0.88}
-              >
-                <Text style={[styles.heroPrimaryBtnText, { color: colors.surface }]}>Explore Menu</Text>
-                <Ionicons name="arrow-down" size={17} color={colors.surface} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.heroSecondaryBtn, { borderColor: colors.divider, backgroundColor: colors.surface }]}
-                onPress={() => navigation.navigate('Reservations')}
-                accessibilityRole="button"
-                accessibilityLabel="Reserve a table"
-                activeOpacity={0.85}
-              >
-                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-                <Text style={[styles.heroSecondaryBtnText, { color: colors.primary }]}>Book Table</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {windowWidth >= 640 && (
-            <View style={styles.heroArt}>
-              <View style={[styles.heroOrbit, { backgroundColor: colors.surface, borderColor: colors.divider }]} />
-              <View style={[styles.heroCup, { backgroundColor: colors.background, borderColor: colors.divider }]}>
-                <Ionicons name="cafe" size={88} color={colors.primary} />
+        <View style={styles.quickActions}>
+          {[
+            ['calendar-outline', 'Book a table', 'Reservations'],
+            ['receipt-outline', 'My orders', 'Orders'],
+            ['sparkles-outline', 'Ask the café', 'Assistant'],
+          ].map(([icon, label, screen]) => (
+            <TouchableOpacity key={screen} accessibilityRole="button" accessibilityLabel={label}
+              style={styles.quickAction} onPress={() => navigation.navigate(screen)}>
+              <View style={[styles.quickIcon, { backgroundColor: colors.surface }]}>
+                <Ionicons name={icon} size={24} color={colors.primary} />
               </View>
-              <View style={[styles.heroArtLabel, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
-                <Ionicons name="heart" size={14} color={colors.accent} />
-                <Text style={[styles.heroArtText, { color: colors.textMid }]}>Brewed with patience</Text>
-              </View>
-            </View>
-          )}
+              <Text style={[styles.quickLabel, { color: colors.textMid }]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* AI Cafe Companion Banner */}
-        <TouchableOpacity
-          style={[styles.assistantCard, { backgroundColor: colors.surface, borderColor: colors.divider }]}
-          activeOpacity={0.88}
-          onPress={() => navigation.navigate('Assistant')}
-          accessibilityRole="button"
-          accessibilityLabel="Ask the cafe assistant for recommendations"
-        >
-          <View style={[styles.assistantIcon, { backgroundColor: colors.accentSoft }]}>
-            <Ionicons name="sparkles" size={22} color={colors.accent} />
-          </View>
-          <View style={styles.assistantCopy}>
-            <Text style={[styles.assistantEyebrow, { color: colors.accent }]}>MEET YOUR CAFE COMPANION</Text>
-            <Text style={[styles.assistantTitle, { color: colors.text }]}>Need help choosing?</Text>
-            <Text style={[styles.assistantDescription, { color: colors.textMid }]}>
-              Ask about flavors, dietary picks, or check your orders.
-            </Text>
-          </View>
-          <View style={[styles.assistantArrow, { backgroundColor: colors.surfaceAlt }]}>
-            <Ionicons name="arrow-forward" size={18} color={colors.primary} />
-          </View>
-        </TouchableOpacity>
-
         {/* Menu Section Header */}
-        <View ref={menuHeaderRef} style={styles.menuHeading}>
+        <View style={styles.menuHeading}>
           <View>
-            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>FRESH FINDS & SIGNATURE ROASTS</Text>
             <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-              What are you craving?
+              Café menu
             </Text>
           </View>
           <Text style={[styles.menuCount, { color: colors.textLight }]}>
-            {loading ? '' : `${visibleMenu.length} items`}
+            {loading ? '' : itemCount(visibleMenu.length)}
           </Text>
         </View>
 
@@ -657,7 +592,7 @@ const HomeScreen = ({ navigation, route }) => {
         {/* Quick Activity Cards */}
         <View style={styles.activityHeading}>
           <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-            Your Cafe Ritual
+            Your activity
           </Text>
         </View>
 
@@ -707,9 +642,6 @@ const HomeScreen = ({ navigation, route }) => {
           </View>
         )}
 
-        <Text style={[styles.footerNote, { color: colors.textLight }]}>
-          CafeSync · A little time for yourself.
-        </Text>
       </ScrollView>
 
       {/* Floating Bottom Cart Dock (Thumb Reach) */}
@@ -724,7 +656,7 @@ const HomeScreen = ({ navigation, route }) => {
               }}
               activeOpacity={0.9}
               accessibilityRole="button"
-              accessibilityLabel={`Review bag with ${cartCount} items, total ${cartTotal.toFixed(2)} rupees`}
+              accessibilityLabel={`Review bag with ${itemCount(cartCount)}, total ${cartTotal.toFixed(2)} rupees`}
             >
               <View style={styles.cartInfo}>
                 <View style={[styles.cartBadge, { backgroundColor: colors.accent }]}>
@@ -1054,7 +986,10 @@ const HomeScreen = ({ navigation, route }) => {
                                 borderColor: active ? colors.primary : colors.divider,
                               },
                             ]}
-                            onPress={() => setPaymentMethod(opt.key)}
+                            onPress={() => {
+                              if (opt.key === 'Card' && paymentMethod !== 'Card') setLoadingCards(true);
+                              setPaymentMethod(opt.key);
+                            }}
                             accessibilityRole="button"
                           >
                             <Ionicons
@@ -1077,15 +1012,21 @@ const HomeScreen = ({ navigation, route }) => {
 
                     {paymentMethod === 'Card' && (
                       <View style={styles.cardPickerSection}>
-                        <Text style={[styles.cardPickerLabel, { color: colors.textLight }]}>Saved Payment Cards</Text>
+                        <Text style={[styles.cardPickerLabel, { color: colors.textLight }]}>Saved payment cards</Text>
+                        <Text style={{ color: colors.textMid }}>Pay by card at the café or on delivery. Staff will confirm payment.</Text>
                         {loadingCards ? (
                           <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
+                        ) : cardError ? (
+                          <TouchableOpacity accessibilityRole="button" onPress={fetchSavedCards}>
+                            <Text style={{ color: colors.primary }}>Could not load cards. Try again</Text>
+                          </TouchableOpacity>
                         ) : savedCards.length === 0 ? (
                           <TouchableOpacity
                             style={[styles.noCardBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
                             onPress={() => {
                               setShowCheckout(false);
-                              navigation.navigate('SavedCards');
+                              resumeCheckout.current = true;
+                              navigation.navigate('SavedCards', { fromCheckout: true });
                             }}
                           >
                             <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
@@ -1183,6 +1124,10 @@ const HomeScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
+  quickActions: { flexDirection: 'row', gap: 16, marginVertical: 20 },
+  quickAction: { flex: 1, alignItems: 'center', gap: 8 },
+  quickIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  quickLabel: { fontSize: 14, fontWeight: '500', textAlign: 'center' },
   container: { flex: 1 },
   topBar: {
     paddingTop: Platform.OS === 'android' ? 36 : 14,
@@ -1257,159 +1202,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.2,
-  },
-  // HERO STYLES
-  hero: {
-    borderRadius: RADIUS.xxl,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  heroWide: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 30,
-  },
-  heroCopy: { flex: 1, zIndex: 1 },
-  taglineBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  eyebrow: {
-    fontSize: 10,
-    letterSpacing: 1.6,
-    fontWeight: '700',
-    fontFamily: FONTS.sans,
-  },
-  heroTitle: {
-    fontSize: 28,
-    lineHeight: 34,
-    letterSpacing: -1,
-    fontWeight: '700',
-  },
-  heroDescription: {
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 8,
-    maxWidth: 380,
-    fontFamily: FONTS.sans,
-  },
-  heroActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 14,
-    flexWrap: 'wrap',
-  },
-  heroPrimaryBtn: {
-    minHeight: TOUCH_TARGET.min,
-    paddingHorizontal: 18,
-    borderRadius: RADIUS.base,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  heroPrimaryBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    fontFamily: FONTS.sans,
-  },
-  heroSecondaryBtn: {
-    minHeight: TOUCH_TARGET.min,
-    paddingHorizontal: 16,
-    borderRadius: RADIUS.base,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  heroSecondaryBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: FONTS.sans,
-  },
-  heroArt: {
-    width: 210,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 200,
-  },
-  heroOrbit: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    position: 'absolute',
-    borderWidth: 1,
-  },
-  heroCup: {
-    width: 146,
-    height: 146,
-    borderRadius: 73,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    transform: [{ rotate: '-8deg' }],
-  },
-  heroArtLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    marginTop: -8,
-  },
-  heroArtText: {
-    fontSize: 11,
-    fontWeight: '600',
-    fontFamily: FONTS.sans,
-  },
-  // ASSISTANT CARD
-  assistantCard: {
-    borderRadius: RADIUS.lg,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-  },
-  assistantIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  assistantCopy: { flex: 1 },
-  assistantEyebrow: {
-    fontSize: 9,
-    letterSpacing: 1.2,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  assistantTitle: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
-    fontFamily: FONTS.sans,
-  },
-  assistantDescription: {
-    fontSize: 11,
-    lineHeight: 15,
-    marginTop: 2,
-    fontFamily: FONTS.sans,
-  },
-  assistantArrow: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   // MENU HEADING & SEARCH
   menuHeading: {

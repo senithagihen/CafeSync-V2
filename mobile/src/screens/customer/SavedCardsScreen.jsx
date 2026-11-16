@@ -12,6 +12,7 @@ import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
 import CoffeeLoader from '../../components/common/CoffeeLoader';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const BRAND_COLORS = {
   Visa: { main: '#1C2942', accent: '#D4AF37', text: '#FAF5EE' },
@@ -42,6 +43,12 @@ const SavedCardItem = ({ card, onSetDefault, onDelete, onEdit, isDeleting, color
       <View style={[styles.cardVisual, { backgroundColor: cfg.main }, SHADOWS.card.web]}>
         <View style={styles.cardVisualHeader}>
           <View style={styles.cardChip} />
+          {card.isDefault && (
+            <View style={[styles.defaultTag, { backgroundColor: colors.accent }]}>
+              <Ionicons name="checkmark-circle" size={12} color="#fff" />
+              <Text style={styles.defaultTagText}>Default</Text>
+            </View>
+          )}
           <Text style={[styles.cardBrand, { color: cfg.accent }]}>{card.brand}</Text>
         </View>
 
@@ -57,13 +64,6 @@ const SavedCardItem = ({ card, onSetDefault, onDelete, onEdit, isDeleting, color
             <Text style={[styles.cardHolderName, { color: cfg.text }]}>{formatExpiry(card.expiryMonth, card.expiryYear)}</Text>
           </View>
         </View>
-
-        {card.isDefault && (
-          <View style={[styles.defaultTag, { backgroundColor: colors.accent }]}>
-            <Ionicons name="checkmark-circle" size={12} color="#fff" />
-            <Text style={styles.defaultTagText}>Default</Text>
-          </View>
-        )}
       </View>
 
       <View style={styles.cardActions}>
@@ -107,7 +107,7 @@ const SavedCardItem = ({ card, onSetDefault, onDelete, onEdit, isDeleting, color
 
 const EMPTY_FORM = { cardNumber: '', cardholderName: '', expiryMM: '', expiryYY: '', brand: 'Other' };
 
-const SavedCardsScreen = () => {
+const SavedCardsScreen = ({ navigation, route }) => {
   const { colors } = useTheme();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -245,11 +245,22 @@ const SavedCardsScreen = () => {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
         <View style={styles.headerContent}>
-          <View>
-            <Text style={[styles.headerSup, { color: colors.accent }]}>SAFE CHECKOUT</Text>
-            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-              Saved Cards
-            </Text>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+              onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('CustomerTabs', { screen: 'Profile' })}
+              style={[styles.backBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+            >
+              <Ionicons name="chevron-back" size={18} color={colors.primary} />
+            </TouchableOpacity>
+            <HeaderBrandLogo />
+            <View style={styles.headerTitles}>
+              <Text style={[styles.headerSup, { color: colors.accent }]}>PAYMENT METHODS</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+                Saved Cards
+              </Text>
+            </View>
           </View>
           <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: colors.primary }]}
@@ -412,6 +423,24 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    marginRight: 10,
+  },
+  headerTitles: {
+    flex: 1,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerSup: {
     fontSize: 10,
     fontWeight: '700',
@@ -464,9 +493,8 @@ const styles = StyleSheet.create({
   cardHolderLabel: { fontSize: 9, letterSpacing: 1, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
   cardHolderName: { fontSize: 12, fontWeight: '700', marginTop: 2, textTransform: 'uppercase' },
   defaultTag: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
+    marginLeft: 'auto',
+    marginRight: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

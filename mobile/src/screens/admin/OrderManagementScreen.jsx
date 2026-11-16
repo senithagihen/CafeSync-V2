@@ -1,3 +1,4 @@
+import { orderReference } from '../../utils/orderDisplay';
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, FlatList,
@@ -8,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { adminOrdersAPI } from '../../api';
 import { COLORS } from '../../constants/colors';
 import { Alert } from '../../utils/alert';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const STATUS_FLOW = { Pending: 'Preparing', Preparing: 'Ready', Ready: 'Completed' };
@@ -47,16 +49,16 @@ const OrderCard = ({ order, onUpdateStatus, onUpdatePayment, onDelete, updatingI
         </View>
         <View style={styles.cardHeaderMain}>
           <View style={styles.cardHeaderTop}>
-            <Text style={styles.orderIdText}>#{order._id?.slice(-6).toUpperCase()}</Text>
+            <Text style={styles.orderIdText}>#{orderReference(order._id)}</Text>
             <View style={[styles.statusBadge, { backgroundColor: sCfg.color + '15' }]}>
               <Text style={[styles.statusBadgeText, { color: sCfg.color }]}>{order.status}</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={styles.customerName}>{order.customer?.name || 'Walk-in Customer'}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity accessibilityRole="button"
               style={styles.trashBtn} 
-              onPress={() => onDelete(order._id)}
+              accessibilityLabel={`Delete order ${orderReference(order._id)}`} onPress={() => onDelete(order._id)}
               disabled={!!updatingId}
             >
               <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
@@ -98,7 +100,7 @@ const OrderCard = ({ order, onUpdateStatus, onUpdatePayment, onDelete, updatingI
 
       <View style={styles.cardActions}>
         {nextStatus && (
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.mainAction, { backgroundColor: STATUS_CONFIG[nextStatus].color }]}
             onPress={() => onUpdateStatus(order._id, nextStatus)}
             disabled={!!updatingId}
@@ -112,7 +114,7 @@ const OrderCard = ({ order, onUpdateStatus, onUpdatePayment, onDelete, updatingI
         )}
         
         {order.paymentStatus === 'Pending' && (
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={styles.secAction}
             onPress={() => onUpdatePayment(order._id, 'Paid')}
             disabled={!!updatingId}
@@ -200,6 +202,7 @@ const OrderManagementScreen = () => {
   const allStatuses  = ['Pending', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
   const allTypes     = ['Dine-In', 'Takeaway', 'Online Delivery'];
 
+  const activeCount = orders.filter(order => ['Pending', 'Preparing', 'Ready'].includes(order.status)).length;
   const filtered = orders.filter(o => {
     const statusOk = statusFilter === 'All' || o.status === statusFilter;
     const typeOk   = typeFilter   === 'All' || (o.orderType || 'Dine-In') === typeFilter;
@@ -209,15 +212,13 @@ const OrderManagementScreen = () => {
   const renderHeader = () => (
     <View style={styles.headerSection}>
       <View style={styles.hero}>
-        <View style={styles.headerCircle} />
         <View style={styles.heroTop}>
-          <View>
-            <Text style={styles.heroTitle}>Orders</Text>
-            <Text style={styles.heroSub}>{orders.length} active sessions</Text>
-          </View>
-          <View style={styles.heroBadge}>
-            <Ionicons name="flash" size={14} color={COLORS.white} />
-            <Text style={styles.heroBadgeText}>LIVE</Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo targetScreen="Dashboard" />
+            <View style={styles.headerTitles}>
+              <Text style={styles.heroTitle}>Orders</Text>
+              <Text style={styles.heroSub}>{activeCount} active · {orders.length} total</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -229,7 +230,7 @@ const OrderManagementScreen = () => {
             const cfg = ORDER_TYPE_CONFIG[item];
             const color = cfg?.color || COLORS.secondary;
             return (
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button"
                 key={item}
                 style={[styles.chip, active && { backgroundColor: color, borderColor: color }]}
                 onPress={() => setTypeFilter(item)}
@@ -249,7 +250,7 @@ const OrderManagementScreen = () => {
             const color = STATUS_CONFIG[item]?.color || COLORS.secondary;
             const cnt = item === 'All' ? orders.length : orders.filter(o => o.status === item).length;
             return (
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button"
                 key={item}
                 style={[styles.chip, active && { backgroundColor: color, borderColor: color }]}
                 onPress={() => setStatusFilter(item)}
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
 
   headerSection: { marginBottom: 10 },
   hero: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.background,
     paddingTop: Platform.OS === 'android' ? 40 : 20,
     paddingBottom: 35, paddingHorizontal: 24,
     borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
@@ -318,8 +319,10 @@ const styles = StyleSheet.create({
   },
   headerCircle: { position: 'absolute', top: -30, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)' },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heroTitle: { fontSize: 26, fontWeight: '900', color: COLORS.white },
-  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  headerTitles: { flex: 1 },
+  heroTitle: { fontSize: 26, fontWeight: '900', color: COLORS.text },
+  heroSub: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
   heroBadge: { 
     flexDirection: 'row', alignItems: 'center', gap: 4, 
     backgroundColor: COLORS.danger, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 

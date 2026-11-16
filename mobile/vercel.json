@@ -4,5 +4,8 @@
   "buildCommand": "node scripts/check-deployment-env.cjs && npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm ci",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/:screen(orders|reservations|payments|profile|saved-cards|assistant)", "destination": "/index.html" }
+  ]
 }

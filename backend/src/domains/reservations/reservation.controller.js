@@ -1,3 +1,4 @@
+const { slotHasPassed, presentReservation } = require('./reservation-slot');
 const Reservation = require('./reservation.model');
 
 // @desc    Book a table
@@ -5,6 +6,9 @@ const Reservation = require('./reservation.model');
 // @access  Private
 exports.bookTable = async (req, res, next) => {
   try {
+    if (slotHasPassed(req.body.date, req.body.time)) {
+      return res.status(400).json({ success: false, error: 'Choose a future reservation time.' });
+    }
     req.body.customer = req.user.id;
 
     // Check if table is already booked for that date and time
@@ -34,7 +38,7 @@ exports.bookTable = async (req, res, next) => {
 // @access  Private
 exports.getAvailability = async (req, res, next) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     const booked = await Reservation.find({
       date: today,
       status: { $in: ['Pending', 'Confirmed'] },
@@ -59,7 +63,7 @@ exports.getReservations = async (req, res, next) => {
       query = Reservation.find({ customer: req.user.id });
     }
 
-    const reservations = await query.sort('-date');
+    const reservations = (await query.sort('-date').lean()).map(presentReservation);
     res.status(200).json({ success: true, count: reservations.length, data: reservations });
   } catch (err) {
     next(err);
@@ -87,7 +91,10 @@ exports.updateReservation = async (req, res, next) => {
        return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    reservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, {
+    if (req.body.status === 'Confirmed' && slotHasPassed(reservation.date, reservation.time)) {
+      return res.status(409).json({ success: false, error: 'This reservation time has passed.' });
+    }
+    reservation = await Reservation.findByIdAndUpdate(req.params.id, { status: req.body.status }, {
       new: true,
       runValidators: true,
     });

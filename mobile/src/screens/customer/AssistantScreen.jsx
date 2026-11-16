@@ -11,6 +11,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const PROMPTS = [
   { icon: 'cafe-outline', label: 'Find my next favourite', message: 'Recommend something from the menu for me.' },
@@ -228,14 +229,17 @@ export default function AssistantScreen({ navigation, route }) {
       <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Back to cafe"
-            onPress={() => navigation.goBack()}
-            style={[styles.headerButton, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Back to cafe"
+              onPress={() => navigation.goBack()}
+              style={[styles.headerButton, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+            >
+              <Ionicons name="arrow-back" size={20} color={colors.text} />
+            </TouchableOpacity>
+            <HeaderBrandLogo size={36} />
+          </View>
 
           <View style={styles.headerTitleGroup}>
             <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>

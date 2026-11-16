@@ -6,31 +6,24 @@ const Order = require('../orders/order.model');
 // @access  Private
 exports.recordPayment = async (req, res, next) => {
   try {
-    const { order: orderId, paymentMethod, transactionId } = req.body;
+    const { order: orderId, paymentMethod } = req.body;
 
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
 
-    // Determine initial payment status based on method
-    const immediatelyPaid = ['Online', 'Card'];
-    const initialStatus = immediatelyPaid.includes(paymentMethod) ? 'Completed' : 'Pending';
-
+    if (req.user.role !== 'admin' && String(order.customer) !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'Not authorized for this order' });
+    }
+    // Staff confirm collection through the protected payment status endpoint.
     const payment = await Payment.create({
       order: orderId,
-      customer: req.user.id,
+      customer: order.customer,
       amount: order.totalAmount,
       paymentMethod,
-      transactionId,
-      status: initialStatus,
+      status: 'Pending',
     });
-
-    // Update order payment status if paid immediately
-    if (initialStatus === 'Completed') {
-      order.paymentStatus = 'Paid';
-      await order.save();
-    }
 
     res.status(201).json({ success: true, data: payment });
   } catch (err) {

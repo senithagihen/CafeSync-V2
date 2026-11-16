@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView,
-  TouchableOpacity, Animated,
+  TouchableOpacity, Animated, Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const CartScreen = () => {
   const navigation = useNavigation();
@@ -25,7 +26,21 @@ const CartScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Animated.View style={[styles.content, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
+      {/* Top Header */}
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
+        <View style={styles.headerLeft}>
+          <HeaderBrandLogo />
+          <View>
+            <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR ORDERS</Text>
+            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+              Cafe Bag
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.body}>
+        <Animated.View style={[styles.content, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
         <View style={[styles.iconBg, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}>
           <Ionicons name="bag-handle-outline" size={44} color={colors.primary} />
         </View>
@@ -61,12 +76,35 @@ const CartScreen = () => {
           <Text style={[styles.secondaryBtnText, { color: colors.textMid }]}>View Order & Tab Receipts</Text>
         </TouchableOpacity>
       </Animated.View>
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  header: {
+    paddingTop: Platform.OS === 'android' ? 36 : 14,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerSup: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    fontFamily: FONTS.sans,
+    marginBottom: 2,
+  },
+  headerTitle: { fontSize: 24, fontWeight: '800' },
+  body: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

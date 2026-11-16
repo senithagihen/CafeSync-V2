@@ -13,6 +13,7 @@ import { Alert } from '../../utils/alert';
 import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const InfoRow = ({ icon, label, value, colors }) => (
   <View style={styles.infoRow}>
@@ -144,11 +145,14 @@ const ProfileScreen = ({ navigation }) => {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
         <View style={styles.headerRow}>
-          <View>
-            <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR ACCOUNT</Text>
-            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-              Profile & Mood
-            </Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo />
+            <View style={styles.headerTitles}>
+              <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR CORNER</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+                Profile
+              </Text>
+            </View>
           </View>
           <TouchableOpacity
             style={[styles.editBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
@@ -200,8 +204,8 @@ const ProfileScreen = ({ navigation }) => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           {/* Theme & Atmosphere Section */}
-          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-            Atmosphere
+          <Text style={[styles.sectionTitle, { color: colors.textMid, fontFamily: FONTS.sans }]}>
+            Appearance
           </Text>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.divider }, SHADOWS.card.web]}>
             <View style={styles.themeRow}>
@@ -209,12 +213,10 @@ const ProfileScreen = ({ navigation }) => {
                 <Ionicons name={isDark ? 'moon' : 'sunny'} size={18} color={colors.accent} />
               </View>
               <View style={styles.infoContent}>
-                <Text style={[styles.infoLabel, { color: colors.text }]}>Night Cafe Mode</Text>
-                <Text style={[styles.infoValueSmall, { color: colors.textLight }]}>
-                  {isDark ? 'Dim ambient espresso theme active' : 'Warm daytime cafe theme active'}
-                </Text>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>Dark mode</Text>
+
               </View>
-              <Switch
+              <Switch accessibilityLabel="Dark mode"
                 value={isDark}
                 onValueChange={toggleTheme}
                 trackColor={{ false: colors.divider, true: colors.accent }}
@@ -224,7 +226,7 @@ const ProfileScreen = ({ navigation }) => {
           </View>
 
           {/* Account Info Section */}
-          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textMid, fontFamily: FONTS.sans }]}>
             Contact & Address
           </Text>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.divider }, SHADOWS.card.web]}>
@@ -238,7 +240,7 @@ const ProfileScreen = ({ navigation }) => {
           </View>
 
           {/* Saved Cards Link */}
-          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textMid, fontFamily: FONTS.sans }]}>
             Payment Options
           </Text>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.divider }, SHADOWS.card.web]}>
@@ -394,6 +396,16 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 16,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 10,
+  },
+  headerTitles: {
+    flex: 1,
+  },
   headerSup: {
     fontSize: 10,
     fontWeight: '700',
@@ -456,7 +468,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 12, marginTop: 12 },
+  sectionTitle: { fontSize: 14, fontWeight: '600', marginLeft: 10, marginBottom: 8, marginTop: 16 },
   card: {
     borderRadius: RADIUS.xl,
     padding: 16,

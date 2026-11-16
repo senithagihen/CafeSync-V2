@@ -1,3 +1,4 @@
+import { orderReference, itemCount } from '../../utils/orderDisplay';
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView,
@@ -11,6 +12,7 @@ import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
 import CoffeeLoader from '../../components/common/CoffeeLoader';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const METHOD_ICONS = {
   'Pay Later': 'time-outline',
@@ -78,10 +80,10 @@ const PaymentCard = ({ payment, index, colors, statusMap }) => {
           <View style={[styles.orderBar, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}>
             <Ionicons name="receipt-outline" size={14} color={colors.textMid} />
             <Text style={[styles.orderBarText, { color: colors.textMid }]} numberOfLines={1}>
-              {order.orderType} · {order.items?.length || 0} items
+              {order.orderType} · {itemCount(order.items?.length)}
             </Text>
             <Text style={[styles.orderBarId, { color: colors.primary }]}>
-              #{order._id?.slice(-6).toUpperCase()}
+              #{orderReference(order._id)}
             </Text>
           </View>
         )}
@@ -131,11 +133,14 @@ const PaymentHistoryScreen = () => {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
         <View style={styles.headerContent}>
-          <View>
-            <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR RECEIPTS</Text>
-            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-              Payments & Tabs
-            </Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo />
+            <View style={styles.headerTitles}>
+              <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR RECEIPTS</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+                Payments & Tabs
+              </Text>
+            </View>
           </View>
           <TouchableOpacity
             style={[styles.refreshBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
@@ -254,6 +259,16 @@ const styles = StyleSheet.create({
     maxWidth: 1120,
     width: '100%',
     alignSelf: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 10,
+  },
+  headerTitles: {
+    flex: 1,
   },
   headerSup: {
     fontSize: 10,

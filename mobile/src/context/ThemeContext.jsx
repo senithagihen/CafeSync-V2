@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useColorScheme, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LIGHT_COLORS, DARK_COLORS } from '../constants/colors';
 
@@ -14,7 +14,6 @@ export const ThemeContext = createContext({
 });
 
 export const ThemeProvider = ({ children }) => {
-  const systemScheme = useColorScheme();
   const [themeMode, setThemeModeState] = useState('light'); // 'light' | 'dark'
 
   useEffect(() => {
@@ -23,25 +22,14 @@ export const ThemeProvider = ({ children }) => {
       .then(stored => {
         if (stored === 'dark' || stored === 'light') {
           setThemeModeState(stored);
-        } else if (systemScheme === 'dark') {
-          setThemeModeState('dark');
         }
       })
       .catch(() => {});
-  }, [systemScheme]);
+  }, []);
 
   // Inject web fonts and responsive styles on web platform
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const fontLinkId = 'cafesync-google-fonts';
-      if (!document.getElementById(fontLinkId)) {
-        const link = document.createElement('link');
-        link.id = fontLinkId;
-        link.rel = 'stylesheet';
-        link.href = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@300;400;500;600;700;800&display=swap';
-        document.head.appendChild(link);
-      }
-
       const styleId = 'cafesync-web-styles';
       let styleTag = document.getElementById(styleId);
       if (!styleTag) {
@@ -53,7 +41,7 @@ export const ThemeProvider = ({ children }) => {
         :root {
           --safe-area-inset-top: env(safe-area-inset-top, 0px);
           --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
         html, body {
           height: 100%;
@@ -71,7 +59,7 @@ export const ThemeProvider = ({ children }) => {
           width: 100%;
         }
         html, body, input, button, textarea, select {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
         * {
           -webkit-tap-highlight-color: transparent;

@@ -1,27 +1,7 @@
-/**
- * CafeSync Design System - Typography Tokens
- * Refined serif font for headlines and clean modern sans-serif for UI/body.
- * Fixed type scale: 11 / 12 / 14 / 16 / 20 / 28 / 36 / 44 with balanced line heights.
- */
-
 import { Platform } from 'react-native';
 
-export const FONTS = {
-  // Headings: Refined serif stack with Fraunces / Playfair / Georgia fallback
-  serif: Platform.select({
-    ios: 'Georgia',
-    android: 'serif',
-    web: "'Fraunces', 'Playfair Display', Georgia, serif",
-    default: 'serif',
-  }),
-  // Body: Clean, accessible sans-serif stack
-  sans: Platform.select({
-    ios: 'System',
-    android: 'sans-serif',
-    web: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    default: 'sans-serif',
-  }),
-};
+const systemFont = Platform.select({ ios: 'System', android: 'sans-serif', web: 'system-ui, sans-serif', default: 'sans-serif' });
+export const FONTS = { sans: systemFont, serif: systemFont };
 
 export const TYPE_SCALE = {
   tiny: { fontSize: 11, lineHeight: 15 },

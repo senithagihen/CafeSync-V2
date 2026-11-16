@@ -1,3 +1,4 @@
+import { orderReference, itemCount } from '../../utils/orderDisplay';
 import React, { useEffect, useState, useRef, useContext } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
@@ -10,6 +11,7 @@ import { adminOrdersAPI, adminInventoryAPI, adminReservationsAPI, adminPaymentsA
 import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
+import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const StatCard = ({ icon, label, value, color, delay, colors }) => {
   const anim = useRef(new Animated.Value(0)).current;
@@ -110,11 +112,14 @@ const DashboardScreen = () => {
         ]}
       >
         <View style={styles.headerRow}>
-          <View>
-            <Text style={[styles.headerSup, { color: colors.accent }]}>CAFE MANAGEMENT</Text>
-            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-              Dashboard
-            </Text>
+          <View style={styles.headerLeft}>
+            <HeaderBrandLogo targetScreen="Dashboard" />
+            <View style={styles.headerTitles}>
+              <Text style={[styles.headerSup, { color: colors.accent }]}>CAFE MANAGEMENT</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+                Dashboard
+              </Text>
+            </View>
           </View>
           <TouchableOpacity
             style={[styles.logoutBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
@@ -140,13 +145,13 @@ const DashboardScreen = () => {
           <>
             {/* Stats Grid */}
             <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-              Daily Overview
+              Overview
             </Text>
             <View style={styles.statsGrid}>
               <StatCard icon="cart" label="Pending Orders" value={pendingOrders} color={colors.warning} delay={0} colors={colors} />
               <StatCard icon="cash" label="Unpaid Tabs" value={unpaidOrders} color={colors.danger} delay={60} colors={colors} />
               <StatCard icon="calendar" label="Today's Tables" value={todayRes} color={colors.info} delay={120} colors={colors} />
-              <StatCard icon="warning" label="Low Roast Stock" value={lowStock} color={colors.accent} delay={180} colors={colors} />
+              <StatCard icon="warning" label="Low stock" value={lowStock} color={colors.accent} delay={180} colors={colors} />
             </View>
 
             {/* Order Types */}
@@ -207,21 +212,21 @@ const DashboardScreen = () => {
                           size={14}
                           color={colors.textMid}
                         />
-                        <Text style={[styles.orderId, { color: colors.text }]}>#{order._id.slice(-6).toUpperCase()}</Text>
+                        <Text style={[styles.orderId, { color: colors.text }]}>#{orderReference(order._id)}</Text>
                       </View>
                       <Text style={[styles.orderMeta, { color: colors.textMid }]}>
-                        {order.items?.length || 0} items · Rs. {order.totalAmount?.toFixed(2)}
+                        {itemCount(order.items?.length)} · Rs. {order.totalAmount?.toFixed(2)}
                       </Text>
                     </View>
                     <View style={{ gap: 4, alignItems: 'flex-end' }}>
                       <View style={[styles.badge, { backgroundColor: (STATUS_COLORS[order.status] || colors.primary) + '18' }]}>
                         <Text style={[styles.badgeText, { color: STATUS_COLORS[order.status] || colors.primary }]}>
-                          {order.status}
+                          Order · {order.status}
                         </Text>
                       </View>
                       <View style={[styles.badge, { backgroundColor: payColor + '18' }]}>
                         <Text style={[styles.badgeText, { color: payColor }]}>
-                          {order.paymentStatus || 'Pending'}
+                          Payment · {order.paymentStatus || 'Pending'}
                         </Text>
                       </View>
                     </View>
@@ -251,6 +256,16 @@ const styles = StyleSheet.create({
     maxWidth: 1120,
     width: '100%',
     alignSelf: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 10,
+  },
+  headerTitles: {
+    flex: 1,
   },
   headerSup: {
     fontSize: 10,
