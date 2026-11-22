@@ -18,3 +18,11 @@ test('expired pending bookings appear in history without modifying stored status
     assert.deepEqual(presentReservation({ ...booking, status }), { ...booking, status, pastSlot: true });
   }
 });
+
+test('slotHasPassed accurately evaluates Date objects and local Colombo timezone', () => {
+  const day = new Date('2026-11-20T00:00:00.000Z');
+  // Past time on that day
+  assert.equal(slotHasPassed(day, '08:00 AM', Date.parse('2026-11-20T10:00:00+05:30')), true);
+  // Future time on that day
+  assert.equal(slotHasPassed(day, '06:00 PM', Date.parse('2026-11-20T10:00:00+05:30')), false);
+});

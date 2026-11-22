@@ -70,8 +70,8 @@ exports.getReservations = async (req, res, next) => {
   }
 };
 
-// @desc    Update reservation status
-// @route   PUT /api/reservations/:id/status
+// @desc    Update reservation (details and/or status)
+// @route   PUT /api/reservations/:id
 // @access  Private (Admin or Customer for cancellation)
 exports.updateReservation = async (req, res, next) => {
   try {
@@ -91,15 +91,53 @@ exports.updateReservation = async (req, res, next) => {
        return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    if (req.body.status === 'Confirmed' && slotHasPassed(reservation.date, reservation.time)) {
+    const targetDate = req.body.date !== undefined ? req.body.date : reservation.date;
+    const targetTime = req.body.time !== undefined ? req.body.time : reservation.time;
+    const targetTable = req.body.tableNumber !== undefined ? Number(req.body.tableNumber) : reservation.tableNumber;
+    const targetStatus = req.body.status !== undefined ? req.body.status : reservation.status;
+
+    if (targetStatus === 'Confirmed' && slotHasPassed(targetDate, targetTime)) {
       return res.status(409).json({ success: false, error: 'This reservation time has passed.' });
     }
-    reservation = await Reservation.findByIdAndUpdate(req.params.id, { status: req.body.status }, {
+
+    // Check conflict if table, date, or time changed while active
+    if (['Pending', 'Confirmed'].includes(targetStatus)) {
+      const conflict = await Reservation.findOne({
+        _id: { $ne: req.params.id },
+        tableNumber: targetTable,
+        date: targetDate,
+        time: targetTime,
+        status: { $in: ['Pending', 'Confirmed'] },
+      });
+
+      if (conflict) {
+        return res.status(409).json({
+          success: false,
+          error: `Table ${targetTable} is already booked for this slot.`,
+        });
+      }
+    }
+
+    const updateData = {};
+    if (req.body.status !== undefined) updateData.status = req.body.status;
+
+    if (req.user.role === 'admin') {
+      if (req.body.tableNumber !== undefined) updateData.tableNumber = Number(req.body.tableNumber);
+      if (req.body.date !== undefined) updateData.date = req.body.date;
+      if (req.body.time !== undefined) updateData.time = req.body.time;
+      if (req.body.guests !== undefined) updateData.guests = Number(req.body.guests);
+      if (req.body.specialRequests !== undefined) updateData.specialRequests = req.body.specialRequests;
+    }
+
+    reservation = await Reservation.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
-    });
+    }).populate('customer', 'name email');
 
-    res.status(200).json({ success: true, data: reservation });
+    res.status(200).json({
+      success: true,
+      data: presentReservation(reservation.toObject ? reservation.toObject() : reservation),
+    });
   } catch (err) {
     next(err);
   }

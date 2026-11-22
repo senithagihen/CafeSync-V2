@@ -12,19 +12,7 @@ import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
 import CoffeeLoader from '../../components/common/CoffeeLoader';
 import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
-
-const TIMES = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'];
-
-const getLocalDayString = (offsetDays = 0) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Colombo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d);
-};
+import { TIME_SLOTS as TIMES, getLocalDayString, isSlotInPast } from '../../utils/date';
 
 const ReservationScreen = () => {
   const { colors } = useTheme();
@@ -83,6 +71,7 @@ const ReservationScreen = () => {
     else if (new Date(form.date) < new Date(new Date().toDateString()))
       e.date = 'Date cannot be in the past';
     if (!form.time) e.time = 'Select a time slot';
+    else if (isSlotInPast(form.time, form.date)) e.time = 'Selected time slot has already passed';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -122,6 +111,13 @@ const ReservationScreen = () => {
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: '' }));
+  };
+
+  const handleDateChange = (dStr) => {
+    setField('date', dStr);
+    if (form.time && isSlotInPast(form.time, dStr)) {
+      setField('time', '');
+    }
   };
 
   return (
@@ -278,7 +274,7 @@ const ReservationScreen = () => {
                           borderColor: isSelected ? colors.primary : colors.divider,
                         },
                       ]}
-                      onPress={() => setField('date', dStr)}
+                      onPress={() => handleDateChange(dStr)}
                       accessibilityRole="button"
                     >
                       <Text
@@ -301,13 +297,14 @@ const ReservationScreen = () => {
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor={colors.textLight}
                 value={form.date}
-                onChangeText={(v) => setField('date', v)}
+                onChangeText={(v) => handleDateChange(v)}
               />
               {errors.date ? <Text style={[styles.fieldErr, { color: colors.danger }]}>{errors.date}</Text> : null}
 
               <Text style={[styles.label, { color: colors.textMid }]}>Preferred Time Slot</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScroll}>
                 {TIMES.map((t) => {
+                  const isPast = isSlotInPast(t, form.date);
                   const isSelected = form.time === t;
                   return (
                     <TouchableOpacity
@@ -318,15 +315,19 @@ const ReservationScreen = () => {
                           backgroundColor: isSelected ? colors.primary : colors.surfaceAlt,
                           borderColor: isSelected ? colors.primary : colors.divider,
                         },
+                        isPast && { opacity: 0.35 },
                       ]}
-                      onPress={() => setField('time', t)}
+                      onPress={() => !isPast && setField('time', t)}
+                      disabled={isPast}
                       accessibilityRole="button"
+                      accessibilityLabel={`${t}${isPast ? ', time slot passed' : ''}`}
                     >
                       <Text
                         style={[
                           styles.timeText,
                           { color: isSelected ? colors.surface : colors.textMid },
                           isSelected && styles.timeTextActive,
+                          isPast && { textDecorationLine: 'line-through' },
                         ]}
                       >
                         {t}
@@ -335,6 +336,11 @@ const ReservationScreen = () => {
                   );
                 })}
               </ScrollView>
+              {TIMES.every((t) => isSlotInPast(t, form.date)) ? (
+                <Text style={[styles.fieldErr, { color: colors.warning || '#d97706', marginTop: 4 }]}>
+                  All time slots for this date have ended. Please choose a future date.
+                </Text>
+              ) : null}
               {errors.time ? <Text style={[styles.fieldErr, { color: colors.danger }]}>{errors.time}</Text> : null}
 
               <Text style={[styles.label, { color: colors.textMid }]}>Special Requests (Optional)</Text>

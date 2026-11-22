@@ -15,6 +15,7 @@ import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
 import { MenuCardSkeleton } from '../../components/common/SkeletonLoader';
+import { TIME_SLOTS, isSlotInPast } from '../../utils/date';
 
 const ORDER_TYPES = [
   { key: 'Dine-In', icon: 'restaurant-outline', label: 'Dine-In', desc: 'Savor at the cafe' },
@@ -29,7 +30,6 @@ const PAYMENT_OPTIONS = {
 };
 
 const TABLES = Array.from({ length: 20 }, (_, i) => i + 1);
-const TIME_SLOTS = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'];
 const CATEGORY_ICONS = {
   All: 'grid-outline',
   Coffee: 'cafe-outline',
@@ -102,7 +102,7 @@ const HomeScreen = ({ navigation, route }) => {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
-  const [reservationTime, setReservationTime] = useState('12:00 PM');
+  const [reservationTime, setReservationTime] = useState(() => TIME_SLOTS.find((t) => !isSlotInPast(t)) || '');
   const [bookedSlots, setBookedSlots] = useState([]);
   const [savedCards, setSavedCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -142,11 +142,15 @@ const HomeScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (showCheckout && orderType === 'Dine-In') {
       fetchAvailability();
+      if (!reservationTime || isSlotInPast(reservationTime)) {
+        const nextSlot = TIME_SLOTS.find((t) => !isSlotInPast(t)) || '';
+        setReservationTime(nextSlot);
+      }
     }
     if (showCheckout && paymentMethod === 'Card') {
       fetchSavedCards();
     }
-  }, [showCheckout, orderType, paymentMethod, fetchSavedCards]);
+  }, [showCheckout, orderType, paymentMethod, fetchSavedCards, reservationTime]);
 
   const fetchAvailability = async () => {
     try {
@@ -158,9 +162,19 @@ const HomeScreen = ({ navigation, route }) => {
   };
 
   const handlePlaceOrder = async () => {
-    if (orderType === 'Dine-In' && !tableNumber) {
-      Alert.alert('Table Required', 'Please select a table for Dine-In orders.');
-      return;
+    if (orderType === 'Dine-In') {
+      if (!tableNumber) {
+        Alert.alert('Table Required', 'Please select a table for Dine-In orders.');
+        return;
+      }
+      if (!reservationTime) {
+        Alert.alert('Time Slot Required', 'Please select an arrival time slot for Dine-In.');
+        return;
+      }
+      if (isSlotInPast(reservationTime)) {
+        Alert.alert('Past Time Slot', 'The selected arrival slot has already passed. Please select an upcoming time slot.');
+        return;
+      }
     }
     if (orderType === 'Online Delivery' && !deliveryAddress.trim()) {
       Alert.alert('Address Required', 'Please enter a delivery address.');
@@ -997,8 +1011,10 @@ const HomeScreen = ({ navigation, route }) => {
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
                           <View style={styles.tableGrid}>
                             {TIME_SLOTS.map((t) => {
+                              const isPast = isSlotInPast(t);
                               const isBooked = tableNumber && bookedSlots.some((b) => b.tableNumber === tableNumber && b.time === t);
                               const isSelected = reservationTime === t;
+                              const isDisabled = isBooked || isPast;
                               return (
                                 <TouchableOpacity
                                   key={t}
@@ -1008,26 +1024,40 @@ const HomeScreen = ({ navigation, route }) => {
                                       backgroundColor: isSelected ? colors.primary : colors.surfaceAlt,
                                       borderColor: isSelected ? colors.primary : colors.divider,
                                     },
-                                    isBooked && { opacity: 0.4 },
+                                    isDisabled && { opacity: 0.35 },
                                   ]}
-                                  onPress={() => !isBooked && setReservationTime(t)}
-                                  activeOpacity={isBooked ? 1 : 0.8}
-                                  disabled={isBooked}
+                                  onPress={() => !isDisabled && setReservationTime(t)}
+                                  activeOpacity={isDisabled ? 1 : 0.8}
+                                  disabled={isDisabled}
                                   accessibilityRole="button"
+                                  accessibilityLabel={`${t}${isPast ? ', time slot passed' : isBooked ? ', table already booked' : ''}`}
                                 >
                                   <Text
                                     style={[
                                       styles.timeBtnText,
                                       { color: isSelected ? colors.surface : colors.text },
+                                      isPast && { textDecorationLine: 'line-through' },
                                     ]}
                                   >
                                     {t}
                                   </Text>
+                                  {isPast ? (
+                                    <Text style={{ fontSize: 9, color: colors.textLight, marginTop: 2, fontWeight: '700' }}>Passed</Text>
+                                  ) : isBooked ? (
+                                    <Text style={{ fontSize: 9, color: colors.danger || '#ef4444', marginTop: 2, fontWeight: '700' }}>Booked</Text>
+                                  ) : null}
                                 </TouchableOpacity>
                               );
                             })}
                           </View>
                         </ScrollView>
+                        {TIME_SLOTS.every((t) => isSlotInPast(t)) && (
+                          <View style={{ backgroundColor: (colors.warning || '#f59e0b') + '18', padding: 10, borderRadius: 10, marginBottom: 16 }}>
+                            <Text style={{ color: colors.warning || '#d97706', fontSize: 12, fontWeight: '700' }}>
+                              All dine-in slots for today have ended. Please choose Takeaway or Delivery, or reserve a table for tomorrow.
+                            </Text>
+                          </View>
+                        )}
                       </>
                     )}
 

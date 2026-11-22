@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, FlatList,
   TouchableOpacity, ActivityIndicator, Platform, ScrollView, RefreshControl,
+  Modal, TextInput, KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { adminOrdersAPI, adminReservationsAPI } from '../../api';
@@ -10,6 +11,7 @@ import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import { Alert } from '../../utils/alert';
 import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
+import { TIME_SLOTS, getLocalDayString } from '../../utils/date';
 
 
 
@@ -57,6 +59,17 @@ const TableManagementScreen = () => {
   const [selectedTable, setSelectedTable] = useState(null);
   const [resFilter, setResFilter] = useState('Upcoming');
   const [updatingRes, setUpdatingRes] = useState(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingRes, setEditingRes] = useState(null);
+  const [editForm, setEditForm] = useState({
+    tableNumber: 1,
+    date: '',
+    time: '',
+    guests: 2,
+    status: 'Pending',
+    specialRequests: '',
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     fetchAll();
@@ -90,6 +103,70 @@ const TableManagementScreen = () => {
       Alert.alert('Update Failed', e.response?.data?.error || e.message || 'Could not update reservation');
     } finally {
       setUpdatingRes(null);
+    }
+  };
+
+  const openEditModal = (r) => {
+    const dStr = r.date
+      ? new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Colombo',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date(r.date))
+      : getLocalDayString(0);
+
+    setEditingRes(r);
+    setEditForm({
+      tableNumber: r.tableNumber || 1,
+      date: dStr,
+      time: r.time || '12:00 PM',
+      guests: r.guests || 2,
+      status: r.status || 'Pending',
+      specialRequests: r.specialRequests || '',
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingRes) return;
+    if (!editForm.date || !/^\d{4}-\d{2}-\d{2}$/.test(editForm.date.trim())) {
+      Alert.alert('Invalid Date', 'Please enter a valid date in YYYY-MM-DD format.');
+      return;
+    }
+    if (!editForm.time) {
+      Alert.alert('Time Slot Required', 'Please select a time slot.');
+      return;
+    }
+    const guestsNum = Number(editForm.guests);
+    if (!guestsNum || guestsNum < 1) {
+      Alert.alert('Invalid Guests', 'Number of guests must be at least 1.');
+      return;
+    }
+    const tableNum = Number(editForm.tableNumber);
+    if (!tableNum || tableNum < 1 || tableNum > 20) {
+      Alert.alert('Invalid Table', 'Please select a table between 1 and 20.');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      await adminReservationsAPI.update(editingRes._id, {
+        tableNumber: tableNum,
+        date: editForm.date.trim(),
+        time: editForm.time,
+        guests: guestsNum,
+        status: editForm.status,
+        specialRequests: editForm.specialRequests.trim(),
+      });
+      setEditModalVisible(false);
+      setEditingRes(null);
+      Alert.alert('Success', 'Reservation updated successfully.');
+      fetchAll();
+    } catch (e) {
+      Alert.alert('Update Failed', e.response?.data?.error || e.message || 'Could not update reservation');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -139,6 +216,14 @@ const TableManagementScreen = () => {
           <View style={[styles.resBadge, { backgroundColor: color + '12' }]}>
             <Text style={[styles.resBadgeText, { color }]}>{r.status}</Text>
           </View>
+          <TouchableOpacity accessibilityRole="button"
+            style={[styles.resEditBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]} 
+            accessibilityLabel={`Edit reservation for table ${r.tableNumber}`}
+            onPress={() => openEditModal(r)}
+            disabled={!!updatingRes}
+          >
+            <Ionicons name="create-outline" size={17} color={colors.primary} />
+          </TouchableOpacity>
           <TouchableOpacity accessibilityRole="button"
             style={[styles.resTrashBtn, { backgroundColor: colors.dangerLight }]} 
             accessibilityLabel={`Delete reservation for table ${r.tableNumber}`} onPress={() => handleDeleteRes(r._id)}
@@ -358,6 +443,225 @@ const TableManagementScreen = () => {
           </>
         )
       )}
+
+      {/* Edit Reservation Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !savingEdit && setEditModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.editModalContainer, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
+            <View style={[styles.editModalHeader, { borderBottomColor: colors.divider }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.editModalTitle, { color: colors.text }]}>Edit Reservation</Text>
+                <Text style={[styles.editModalSub, { color: colors.textLight }]}>
+                  {editingRes?.customer?.name ? `${editingRes.customer.name} · ` : ''}ID: #{editingRes?._id?.slice(-6).toUpperCase()}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => !savingEdit && setEditModalVisible(false)}
+                style={[styles.modalCloseBtn, { backgroundColor: colors.surfaceAlt }]}
+                accessibilityRole="button"
+                accessibilityLabel="Close edit modal"
+              >
+                <Ionicons name="close" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.editModalBody}>
+              {/* Table Selector */}
+              <Text style={[styles.formLabel, { color: colors.textMid }]}>Select Table (1 - 20)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+                {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => {
+                  const isSelected = editForm.tableNumber === num;
+                  return (
+                    <TouchableOpacity
+                      key={num}
+                      style={[
+                        styles.tableSelectChip,
+                        {
+                          backgroundColor: isSelected ? colors.primary : colors.surfaceAlt,
+                          borderColor: isSelected ? colors.primary : colors.divider,
+                        },
+                      ]}
+                      onPress={() => setEditForm(prev => ({ ...prev, tableNumber: num }))}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.tableSelectChipText, { color: isSelected ? '#fff' : colors.text }]}>
+                        T{num}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Date Input & Quick Chips */}
+              <Text style={[styles.formLabel, { color: colors.textMid }]}>Reservation Date (YYYY-MM-DD)</Text>
+              <View style={styles.quickDateRow}>
+                {[
+                  { label: 'Today', offset: 0 },
+                  { label: 'Tomorrow', offset: 1 },
+                  { label: 'In 2 Days', offset: 2 },
+                ].map(({ label, offset }) => {
+                  const dStr = getLocalDayString(offset);
+                  const isSelected = editForm.date === dStr;
+                  return (
+                    <TouchableOpacity
+                      key={label}
+                      style={[
+                        styles.quickDateBtn,
+                        {
+                          backgroundColor: isSelected ? colors.primary : colors.surfaceAlt,
+                          borderColor: isSelected ? colors.primary : colors.divider,
+                        },
+                      ]}
+                      onPress={() => setEditForm(prev => ({ ...prev, date: dStr }))}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.quickDateBtnText, { color: isSelected ? '#fff' : colors.textMid }]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <TextInput
+                style={[styles.formInput, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider, color: colors.text }]}
+                value={editForm.date}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.textLight}
+                onChangeText={(v) => setEditForm(prev => ({ ...prev, date: v }))}
+              />
+
+              {/* Time Slot Chips */}
+              <Text style={[styles.formLabel, { color: colors.textMid }]}>Time Slot</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+                {TIME_SLOTS.map((t) => {
+                  const isSelected = editForm.time === t;
+                  return (
+                    <TouchableOpacity
+                      key={t}
+                      style={[
+                        styles.timeChip,
+                        {
+                          backgroundColor: isSelected ? colors.primary : colors.surfaceAlt,
+                          borderColor: isSelected ? colors.primary : colors.divider,
+                        },
+                      ]}
+                      onPress={() => setEditForm(prev => ({ ...prev, time: t }))}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.timeChipText, { color: isSelected ? '#fff' : colors.textMid }]}>
+                        {t}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Guest Count */}
+              <Text style={[styles.formLabel, { color: colors.textMid }]}>Guest Count</Text>
+              <View style={styles.guestsStepperRow}>
+                <TouchableOpacity
+                  style={[styles.stepperBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+                  onPress={() => setEditForm(prev => ({ ...prev, guests: Math.max(1, (prev.guests || 1) - 1) }))}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="remove" size={18} color={colors.text} />
+                </TouchableOpacity>
+                <TextInput
+                  style={[styles.guestsInput, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider, color: colors.text }]}
+                  value={String(editForm.guests)}
+                  keyboardType="numeric"
+                  onChangeText={(v) => {
+                    const num = parseInt(v, 10);
+                    setEditForm(prev => ({ ...prev, guests: isNaN(num) ? '' : num }));
+                  }}
+                />
+                <TouchableOpacity
+                  style={[styles.stepperBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+                  onPress={() => setEditForm(prev => ({ ...prev, guests: (prev.guests || 1) + 1 }))}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="add" size={18} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Status Selector */}
+              <Text style={[styles.formLabel, { color: colors.textMid }]}>Reservation Status</Text>
+              <View style={styles.statusChipRow}>
+                {['Pending', 'Confirmed', 'Completed', 'Cancelled'].map((st) => {
+                  const isSelected = editForm.status === st;
+                  const stColor = RES_STATUS_CONFIG[st]?.color || colors.primary;
+                  return (
+                    <TouchableOpacity
+                      key={st}
+                      style={[
+                        styles.statusChip,
+                        {
+                          backgroundColor: isSelected ? stColor : colors.surfaceAlt,
+                          borderColor: isSelected ? stColor : colors.divider,
+                        },
+                      ]}
+                      onPress={() => setEditForm(prev => ({ ...prev, status: st }))}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.statusChipText, { color: isSelected ? '#fff' : colors.textMid }]}>
+                        {st}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Special Requests */}
+              <Text style={[styles.formLabel, { color: colors.textMid }]}>Special Requests / Notes</Text>
+              <TextInput
+                style={[
+                  styles.formInput,
+                  styles.formTextarea,
+                  { backgroundColor: colors.surfaceAlt, borderColor: colors.divider, color: colors.text },
+                ]}
+                value={editForm.specialRequests}
+                placeholder="Dietary preferences, seating requests, etc."
+                placeholderTextColor={colors.textLight}
+                multiline
+                numberOfLines={3}
+                onChangeText={(v) => setEditForm(prev => ({ ...prev, specialRequests: v }))}
+              />
+            </ScrollView>
+
+            {/* Modal Actions */}
+            <View style={[styles.editModalFooter, { borderTopColor: colors.divider }]}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { borderColor: colors.divider }]}
+                onPress={() => !savingEdit && setEditModalVisible(false)}
+                disabled={savingEdit}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.modalCancelText, { color: colors.textMid }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, { backgroundColor: colors.primary }]}
+                onPress={handleSaveEdit}
+                disabled={savingEdit}
+                accessibilityRole="button"
+              >
+                {savingEdit ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -433,6 +737,7 @@ const styles = StyleSheet.create({
   resBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   resBadgeText: { fontSize: 11, fontWeight: '800' },
   resTrashBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.dangerLight, alignItems: 'center', justifyContent: 'center' },
+  resEditBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   resMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 12 },
   resMetaItemRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   resMetaItem: { fontSize: 12, color: COLORS.textMid, fontWeight: '600' },
@@ -443,6 +748,36 @@ const styles = StyleSheet.create({
   resActionText: { color: COLORS.white, fontWeight: '800', fontSize: 14 },
   empty: { alignItems: 'center', marginTop: 80, gap: 12 },
   emptyText: { color: COLORS.textLight, fontSize: 16, fontWeight: '600' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  editModalContainer: { width: '100%', maxWidth: 520, maxHeight: '90%', borderRadius: 24, borderWidth: 1, overflow: 'hidden' },
+  editModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  editModalTitle: { fontSize: 18, fontWeight: '800' },
+  editModalSub: { fontSize: 12, marginTop: 2, fontWeight: '600' },
+  modalCloseBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  editModalBody: { padding: 20, gap: 14 },
+  formLabel: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  formInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14 },
+  formTextarea: { height: 70, textAlignVertical: 'top' },
+  chipRow: { flexDirection: 'row', marginHorizontal: -4 },
+  tableSelectChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, marginHorizontal: 4, minWidth: 46, alignItems: 'center' },
+  tableSelectChipText: { fontSize: 13, fontWeight: '700' },
+  quickDateRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  quickDateBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
+  quickDateBtnText: { fontSize: 12, fontWeight: '700' },
+  timeChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, marginHorizontal: 4 },
+  timeChipText: { fontSize: 12, fontWeight: '700' },
+  guestsStepperRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  stepperBtn: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  guestsInput: { width: 80, height: 40, borderRadius: 12, borderWidth: 1, textAlign: 'center', fontSize: 16, fontWeight: '700' },
+  statusChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statusChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, borderWidth: 1 },
+  statusChipText: { fontSize: 12, fontWeight: '800' },
+  editModalFooter: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: 1, gap: 12 },
+  modalCancelBtn: { flex: 1, height: 46, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  modalCancelText: { fontSize: 14, fontWeight: '700' },
+  modalSaveBtn: { flex: 1, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  modalSaveText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });
 
 export default TableManagementScreen;

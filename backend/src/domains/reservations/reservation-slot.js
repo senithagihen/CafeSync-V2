@@ -3,7 +3,9 @@ function slotHasPassed(date, time, now = Date.now()) {
   const day = new Date(date);
   if (!Number.isFinite(day.getTime())) return false;
   const match = /^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i.exec(String(time).trim());
-  const calendarDay = day.toISOString().slice(0, 10);
+  const calendarDay = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date.trim())
+    ? date.trim()
+    : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(day);
   if (!match) return Date.parse(calendarDay + 'T23:59:59+05:30') < now;
   const [, hours, minutes, period] = match;
   const hour = period ? Number(hours) % 12 + (period.toUpperCase() === 'PM' ? 12 : 0) : Number(hours);
