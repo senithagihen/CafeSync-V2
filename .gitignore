@@ -42,6 +42,7 @@ mobile/.expo-android/
 mobile/.expo-ios/
 
 # System files
+scratch/
 .DS_Store
 Thumbs.db
 *.log
