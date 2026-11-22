@@ -38,10 +38,13 @@ export default function FloatingAssistiveAssistant({ onPress }) {
   const safeWidth = windowWidth > 0 ? windowWidth : 390;
   const safeHeight = windowHeight > 0 ? windowHeight : 844;
 
-  const tabOffset = Platform.select({
-    web: 76,
-    default: Math.max(72, insets.bottom + 60),
-  });
+  const isDesktop = Platform.OS === 'web' && windowWidth >= 768;
+  const tabOffset = isDesktop
+    ? 20
+    : Platform.select({
+        web: 82,
+        default: Math.max(72, insets.bottom + 60),
+      });
 
   const getDockPosition = useCallback((w, h) => {
     const maxX = Math.max(SNAP_MARGIN, w - BUTTON_SIZE - SNAP_MARGIN);

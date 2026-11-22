@@ -8,13 +8,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { adminInventoryAPI } from '../../api';
 import apiClient from '../../api/client';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
+import { Alert } from '../../utils/alert';
 import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const CATEGORIES = ['Coffee', 'Tea', 'Snacks', 'Desserts', 'Beverages', 'Other'];
 const CAT_ICONS = { Coffee: 'cafe', Tea: 'leaf', Snacks: 'fast-food', Desserts: 'ice-cream', Beverages: 'wine', Other: 'restaurant' };
 const EMPTY_FORM = { name: '', description: '', price: '', stock: '', category: 'Coffee', image: '' };
 
-const InventoryImage = ({ item }) => {
+const InventoryImage = ({ item, colors }) => {
   const [failed, setFailed] = useState(false);
   const image = item.image;
   const uri = image && image !== 'no-photo.jpg'
@@ -24,10 +26,11 @@ const InventoryImage = ({ item }) => {
 
   return uri && !failed
     ? <Image source={{ uri }} style={styles.itemImg} onError={() => setFailed(true)} accessibilityLabel={item.name} />
-    : <Ionicons name={CAT_ICONS[item.category] || 'restaurant'} size={24} color={COLORS.primary} />;
+    : <Ionicons name={CAT_ICONS[item.category] || 'restaurant'} size={24} color={colors?.accent || COLORS.primary} />;
 };
 
 const InventoryScreen = () => {
+  const { colors, isDark, toggleTheme } = useTheme();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,8 +46,12 @@ const InventoryScreen = () => {
     try {
       const res = await adminInventoryAPI.getAll();
       setItems(res.data.data || []);
-    } catch (e) { console.log(e?.message); }
-    finally { setLoading(false); setRefreshing(false); }
+    } catch (e) {
+      console.log(e?.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const openAdd = () => { setEditing(null); setForm(EMPTY_FORM); setErrors({}); setShowModal(true); };
@@ -94,66 +101,104 @@ const InventoryScreen = () => {
         if (res.data.data) setItems(prev => [res.data.data, ...prev]);
       }
       setShowModal(false);
-    } catch (e) { setErrors({ general: e.response?.data?.error || 'Failed to save' }); }
-    finally { setSubmitting(false); }
+    } catch (e) {
+      setErrors({ general: e.response?.data?.error || 'Failed to save item' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = async (id) => {
-    try {
-      await adminInventoryAPI.delete(id);
-      setItems(prev => prev.filter(i => i._id !== id));
-    } catch (e) { console.log(e?.message); }
+  const handleDelete = (id, name) => {
+    Alert.alert(
+      'Remove Product',
+      `Are you sure you want to remove "${name || 'this item'}" from inventory?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await adminInventoryAPI.delete(id);
+              setItems(prev => prev.filter(i => i._id !== id));
+            } catch (e) {
+              Alert.alert('Delete Failed', e.response?.data?.error || e.message || 'Could not delete item');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.itemCard}>
-      <View style={[styles.itemIconBg, { backgroundColor: COLORS.primaryGlow }]}>
-        <InventoryImage item={item} />
+    <View style={[styles.itemCard, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
+      <View style={[styles.itemIconBg, { backgroundColor: colors.surfaceAlt }]}>
+        <InventoryImage item={item} colors={colors} />
       </View>
       <View style={styles.itemInfo}>
         <View style={styles.itemTitleRow}>
-          <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+          <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
           {item.stock < 5 && (
-            <View style={styles.lowBadge}>
-              <Ionicons name="alert-circle" size={10} color={COLORS.danger} style={{ marginRight: 2 }} />
-              <Text style={styles.lowText}>Low</Text>
+            <View style={[styles.lowBadge, { backgroundColor: colors.dangerLight }]}>
+              <Ionicons name="alert-circle" size={10} color={colors.danger} style={{ marginRight: 2 }} />
+              <Text style={[styles.lowText, { color: colors.danger }]}>Low</Text>
             </View>
           )}
         </View>
-        <Text style={styles.itemCat}>{item.category}</Text>
+        <Text style={[styles.itemCat, { color: colors.textLight }]}>{item.category}</Text>
         <View style={styles.itemPriceRow}>
-          <Text style={styles.itemPrice}>Rs. {item.price?.toFixed(2)}</Text>
-          <Text style={styles.itemStock}>Stock: {item.stock}</Text>
+          <Text style={[styles.itemPrice, { color: colors.accent || colors.primary }]}>Rs. {item.price?.toFixed(2)}</Text>
+          <Text style={[styles.itemStock, { color: colors.textLight }]}>Stock: {item.stock}</Text>
         </View>
       </View>
       <View style={styles.itemActions}>
-        <TouchableOpacity accessibilityRole="button" style={styles.editBtn} accessibilityLabel={`Edit ${item.name}`} onPress={() => openEdit(item)}>
-          <Ionicons name="create-outline" size={18} color={COLORS.info} />
+        <TouchableOpacity
+          accessibilityRole="button"
+          style={[styles.editBtn, { backgroundColor: colors.surfaceAlt }]}
+          accessibilityLabel={`Edit ${item.name}`}
+          onPress={() => openEdit(item)}
+        >
+          <Ionicons name="create-outline" size={18} color={colors.accent || colors.primary} />
         </TouchableOpacity>
-        <TouchableOpacity accessibilityRole="button" style={styles.deleteBtn} accessibilityLabel={`Delete ${item.name}`} onPress={() => handleDelete(item._id)}>
-          <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+        <TouchableOpacity
+          accessibilityRole="button"
+          style={[styles.deleteBtn, { backgroundColor: colors.dangerLight }]}
+          accessibilityLabel={`Delete ${item.name}`}
+          onPress={() => handleDelete(item._id, item.name)}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.danger} />
         </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            <HeaderBrandLogo targetScreen="Dashboard" />
+            <HeaderBrandLogo targetScreen="Dashboard" size={34} />
             <View style={styles.headerTitles}>
-              <Text style={styles.headerTitle}>Inventory</Text>
-              <Text style={styles.headerSub}>{items.length} menu items</Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>Inventory</Text>
+              <Text style={[styles.headerSub, { color: colors.textLight }]} numberOfLines={1}>{items.length} menu items</Text>
             </View>
           </View>
-          <TouchableOpacity accessibilityRole="button" style={styles.addBtn} onPress={openAdd}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="add" size={18} color={COLORS.white} />
-              <Text style={styles.addBtnText}>Add Item</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+              onPress={toggleTheme}
+              style={[styles.themePill, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+            >
+              <Ionicons name={isDark ? 'sunny' : 'moon'} size={16} color={colors.accent || colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" style={[styles.addBtn, { backgroundColor: colors.primary }]} onPress={openAdd}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="add" size={18} color={COLORS.white} />
+                <Text style={styles.addBtnText}>Add Item</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -179,16 +224,16 @@ const InventoryScreen = () => {
       {/* Form Modal */}
       <Modal visible={showModal} animationType="slide" transparent>
         <View style={styles.overlay}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
+          <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.divider }]} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{editing ? 'Edit Item' : 'Add Item'}</Text>
-              <TouchableOpacity accessibilityRole="button" style={styles.closeBtn} accessibilityLabel={`Close item form`} onPress={() => setShowModal(false)}>
-                <Ionicons name="close" size={24} color={COLORS.textLight} />
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>{editing ? 'Edit Item' : 'Add Item'}</Text>
+              <TouchableOpacity accessibilityRole="button" style={[styles.closeBtn, { backgroundColor: colors.surfaceAlt }]} accessibilityLabel={`Close item form`} onPress={() => setShowModal(false)}>
+                <Ionicons name="close" size={24} color={colors.textLight} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {errors.general ? <Text style={styles.generalError}>{errors.general}</Text> : null}
+              {errors.general ? <Text style={[styles.generalError, { backgroundColor: colors.dangerLight, color: colors.danger }]}>{errors.general}</Text> : null}
 
               {[
                 { key: 'name', label: 'Item Name', placeholder: 'e.g. Espresso', extra: { autoCapitalize: 'words' } },
@@ -196,49 +241,82 @@ const InventoryScreen = () => {
                 { key: 'image', label: 'Image URL', placeholder: 'https://example.com/image.jpg' },
               ].map(({ key, label, placeholder, extra, multiline }) => (
                 <View key={key}>
-                  <Text style={styles.label}>{label}</Text>
+                  <Text style={[styles.label, { color: colors.textMid }]}>{label}</Text>
                   <TextInput
-                    style={[styles.input, multiline && styles.textarea, errors[key] && styles.inputErr]}
+                    style={[
+                      styles.input,
+                      { backgroundColor: colors.surfaceAlt, color: colors.text, borderColor: colors.divider },
+                      multiline && styles.textarea,
+                      errors[key] && { borderColor: colors.danger },
+                    ]}
                     placeholder={placeholder}
-                    placeholderTextColor={COLORS.textLight}
+                    placeholderTextColor={colors.textLight}
                     value={form[key]}
                     onChangeText={v => setField(key, v)}
                     multiline={multiline}
                     {...(extra || {})}
                   />
-                  {errors[key] ? <Text style={styles.fieldErr}>{errors[key]}</Text> : null}
+                  {errors[key] ? <Text style={[styles.fieldErr, { color: colors.danger }]}>{errors[key]}</Text> : null}
                 </View>
               ))}
 
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Price (Rs.)</Text>
-                  <TextInput style={[styles.input, errors.price && styles.inputErr]} placeholder="0.00" placeholderTextColor={COLORS.textLight} keyboardType="numeric" value={form.price} onChangeText={v => setField('price', v)} />
-                  {errors.price ? <Text style={styles.fieldErr}>{errors.price}</Text> : null}
+                  <Text style={[styles.label, { color: colors.textMid }]}>Price (Rs.)</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { backgroundColor: colors.surfaceAlt, color: colors.text, borderColor: colors.divider },
+                      errors.price && { borderColor: colors.danger },
+                    ]}
+                    placeholder="0.00"
+                    placeholderTextColor={colors.textLight}
+                    keyboardType="numeric"
+                    value={form.price}
+                    onChangeText={v => setField('price', v)}
+                  />
+                  {errors.price ? <Text style={[styles.fieldErr, { color: colors.danger }]}>{errors.price}</Text> : null}
                 </View>
                 <View style={{ width: 12 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Stock</Text>
-                  <TextInput style={[styles.input, errors.stock && styles.inputErr]} placeholder="0" placeholderTextColor={COLORS.textLight} keyboardType="numeric" value={form.stock} onChangeText={v => setField('stock', v)} />
-                  {errors.stock ? <Text style={styles.fieldErr}>{errors.stock}</Text> : null}
+                  <Text style={[styles.label, { color: colors.textMid }]}>Stock</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      { backgroundColor: colors.surfaceAlt, color: colors.text, borderColor: colors.divider },
+                      errors.stock && { borderColor: colors.danger },
+                    ]}
+                    placeholder="0"
+                    placeholderTextColor={colors.textLight}
+                    keyboardType="numeric"
+                    value={form.stock}
+                    onChangeText={v => setField('stock', v)}
+                  />
+                  {errors.stock ? <Text style={[styles.fieldErr, { color: colors.danger }]}>{errors.stock}</Text> : null}
                 </View>
               </View>
 
-              <Text style={styles.label}>Category</Text>
+              <Text style={[styles.label, { color: colors.textMid }]}>Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 8 }}>
-                {CATEGORIES.map(c => (
-                  <TouchableOpacity accessibilityRole="button"
-                    key={c}
-                    style={[styles.catChip, form.category === c && styles.catChipActive]}
-                    onPress={() => setField('category', c)}
-                  >
-                    <Ionicons name={CAT_ICONS[c]} size={16} color={form.category === c ? COLORS.white : COLORS.primary} />
-                    <Text style={[styles.catText, form.category === c && { color: COLORS.white }]}>{c}</Text>
-                  </TouchableOpacity>
-                ))}
+                {CATEGORIES.map(c => {
+                  const active = form.category === c;
+                  return (
+                    <TouchableOpacity accessibilityRole="button"
+                      key={c}
+                      style={[
+                        styles.catChip,
+                        { backgroundColor: active ? (colors.accent || colors.primary) : colors.surfaceAlt, borderColor: active ? (colors.accent || colors.primary) : colors.divider },
+                      ]}
+                      onPress={() => setField('category', c)}
+                    >
+                      <Ionicons name={CAT_ICONS[c]} size={16} color={active ? COLORS.white : (colors.accent || colors.primary)} />
+                      <Text style={[styles.catText, { color: active ? COLORS.white : colors.textLight }]}>{c}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
 
-              <TouchableOpacity accessibilityRole="button" style={[styles.submitBtn, submitting && { opacity: 0.7 }]} onPress={handleSubmit} disabled={submitting}>
+              <TouchableOpacity accessibilityRole="button" style={[styles.submitBtn, { backgroundColor: colors.accent || colors.primary }, submitting && { opacity: 0.7 }]} onPress={handleSubmit} disabled={submitting}>
                 {submitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitText}>{editing ? 'Update Item ✓' : 'Add Item ✓'}</Text>}
               </TouchableOpacity>
             </ScrollView>
@@ -260,16 +338,17 @@ const styles = StyleSheet.create({
   },
   headerCircle: { position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 10 },
-  headerTitles: { flex: 1 },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: COLORS.text },
-  headerSub: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, marginRight: 8 },
+  headerTitles: { flex: 1, minWidth: 0 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text },
+  headerSub: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
+  themePill: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   addBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 13 },
   list: { padding: 16, gap: 10, paddingBottom: 130 },
   itemCard: {
     backgroundColor: COLORS.surface, borderRadius: 18,
-    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: COLORS.divider,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 8 },
       android: { elevation: 2 },

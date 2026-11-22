@@ -134,10 +134,10 @@ const PaymentHistoryScreen = () => {
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <HeaderBrandLogo />
+            <HeaderBrandLogo size={34} />
             <View style={styles.headerTitles}>
-              <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR RECEIPTS</Text>
-              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+              <Text style={[styles.headerSup, { color: colors.accent }]} numberOfLines={1}>YOUR RECEIPTS</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]} numberOfLines={1}>
                 Payments & Tabs
               </Text>
             </View>
@@ -269,15 +269,16 @@ const styles = StyleSheet.create({
   },
   headerTitles: {
     flex: 1,
+    minWidth: 0,
   },
   headerSup: {
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     fontFamily: FONTS.sans,
-    marginBottom: 2,
+    marginBottom: 1,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800' },
+  headerTitle: { fontSize: 22, fontWeight: '800' },
   refreshBtn: {
     width: TOUCH_TARGET.min,
     height: TOUCH_TARGET.min,

@@ -1,5 +1,6 @@
 const Order = require('./order.model');
 const Inventory = require('../inventory/inventory.model');
+const { evaluateStockAlerts } = require('../notifications/notification.service');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -20,31 +21,45 @@ exports.createOrder = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Delivery address is required for Online Delivery orders' });
     }
 
-    let totalAmount = 0;
-    const orderItems = [];
-
-    // Verify stock and calculate total
+    // First pass: Verify all products exist, are active, and have sufficient stock
+    const productsToDeduct = [];
     for (const item of items) {
-      const product = await Inventory.findById(item.product);
-      if (!product) {
-        return res.status(404).json({ success: false, error: `Product ${item.product} not found` });
+      const quantity = Number(item.quantity);
+      if (!item.product || !Number.isInteger(quantity) || quantity <= 0) {
+        return res.status(400).json({ success: false, error: 'Invalid item quantity' });
       }
 
-      if (product.stock < item.quantity) {
+      const product = await Inventory.findById(item.product);
+      if (!product || !product.isActive) {
+        return res.status(404).json({ success: false, error: `Product ${item.product} not found or unavailable` });
+      }
+
+      if (product.stock < quantity) {
         return res.status(400).json({ success: false, error: `Insufficient stock for ${product.name}` });
       }
 
-      // Deduct stock
-      product.stock -= item.quantity;
+      productsToDeduct.push({ product, quantity });
+    }
+
+    let totalAmount = 0;
+    const orderItems = [];
+
+    // Second pass: Deduct stock and assemble order items safely
+    const deductions = [];
+    for (const { product, quantity } of productsToDeduct) {
+      const prevStock = product.stock;
+      product.stock -= quantity;
       await product.save();
 
-      totalAmount += product.price * item.quantity;
+      totalAmount += product.price * quantity;
       orderItems.push({
         product: product._id,
         name: product.name,
-        quantity: item.quantity,
+        quantity,
         price: product.price,
       });
+
+      deductions.push({ product, prevStock, currentStock: product.stock });
     }
 
     const order = await Order.create({
@@ -57,6 +72,18 @@ exports.createOrder = async (req, res, next) => {
       tableNumber: orderType === 'Dine-In' ? tableNumber : undefined,
       deliveryAddress: orderType === 'Online Delivery' ? deliveryAddress : undefined,
     });
+
+    // Asynchronously trigger automated inventory notifications and movements
+    for (const d of deductions) {
+      await evaluateStockAlerts({
+        product: d.product,
+        previousStock: d.prevStock,
+        currentStock: d.currentStock,
+        actor: req.user.id,
+        referenceId: String(order._id),
+        reason: 'order_placed',
+      });
+    }
 
     res.status(201).json({ success: true, data: order });
   } catch (err) {
@@ -116,6 +143,27 @@ exports.updateOrderStatus = async (req, res, next) => {
 
     if (!order) {
       return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    if (status === 'Cancelled' && order.status !== 'Cancelled') {
+      for (const item of order.items) {
+        if (item.product) {
+          const product = await Inventory.findById(item.product);
+          if (product) {
+            const prevStock = product.stock;
+            product.stock += item.quantity;
+            await product.save();
+            await evaluateStockAlerts({
+              product,
+              previousStock: prevStock,
+              currentStock: product.stock,
+              actor: req.user.id,
+              referenceId: String(order._id),
+              reason: 'order_cancelled',
+            });
+          }
+        }
+      }
     }
 
     order.status = status;

@@ -6,6 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useCart } from '../../context/CartContext';
 import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
@@ -14,6 +15,7 @@ import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 const CartScreen = () => {
   const navigation = useNavigation();
   const { colors } = useTheme();
+  const { cartCount, cartTotal } = useCart();
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -29,10 +31,18 @@ const CartScreen = () => {
       {/* Top Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
         <View style={styles.headerLeft}>
-          <HeaderBrandLogo />
-          <View>
-            <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR ORDERS</Text>
-            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
+            style={[styles.backBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <HeaderBrandLogo size={34} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[styles.headerSup, { color: colors.accent }]} numberOfLines={1}>YOUR BAG</Text>
+            <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]} numberOfLines={1}>
               Cafe Bag
             </Text>
           </View>
@@ -51,19 +61,21 @@ const CartScreen = () => {
         </Text>
 
         <Text style={[styles.sub, { color: colors.textMid }]}>
-          Your bag is conveniently ready right on the{'\n'}
-          <Text style={[styles.highlight, { color: colors.primary }]}>Menu</Text> screen.{'\n'}
-          Add artisanal roasts and treats, then tap the floating bag to check out.
+          {cartCount > 0
+            ? `You have ${cartCount} handcrafted ${cartCount === 1 ? 'item' : 'items'} in your bag (Rs. ${cartTotal.toFixed(2)}). Ready to review and order?`
+            : `Your bag is currently empty. Explore our roasts and warm bakery treats, then tap the floating bag to check out.`}
         </Text>
 
         <TouchableOpacity
           style={[styles.btn, { backgroundColor: colors.primary }, SHADOWS.card.web]}
           activeOpacity={0.88}
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => navigation.navigate('Home', cartCount > 0 ? { openCart: true } : undefined)}
           accessibilityRole="button"
         >
-          <Ionicons name="cafe-outline" size={20} color={colors.surface} />
-          <Text style={[styles.btnText, { color: colors.surface }]}>Browse Menu</Text>
+          <Ionicons name={cartCount > 0 ? "checkmark-circle-outline" : "cafe-outline"} size={20} color={colors.surface} />
+          <Text style={[styles.btnText, { color: colors.surface }]}>
+            {cartCount > 0 ? `Review & Place Order (Rs. ${cartTotal.toFixed(2)})` : 'Browse Menu'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -96,14 +108,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerSup: {
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     fontFamily: FONTS.sans,
-    marginBottom: 2,
+    marginBottom: 1,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800' },
+  headerTitle: { fontSize: 22, fontWeight: '800' },
   body: {
     flex: 1,
     justifyContent: 'center',

@@ -1,11 +1,16 @@
 const Inventory = require('./inventory.model');
+const { evaluateStockAlerts } = require('../notifications/notification.service');
 
 // @desc    Get all inventory items
 // @route   GET /api/inventory
 // @access  Public
 exports.getInventoryItems = async (req, res, next) => {
   try {
-    const items = await Inventory.find({ isActive: true });
+    const filter = { isActive: true };
+    if (req.query.category && req.query.category !== 'All') {
+      filter.category = req.query.category;
+    }
+    const items = await Inventory.find(filter);
     res.status(200).json({ success: true, count: items.length, data: items });
   } catch (err) {
     next(err);
@@ -54,6 +59,8 @@ exports.updateInventoryItem = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Item not found' });
     }
 
+    const prevStock = item.stock;
+
     if (req.file) {
       req.body.image = req.file.filename;
     }
@@ -62,6 +69,17 @@ exports.updateInventoryItem = async (req, res, next) => {
       new: true,
       runValidators: true,
     });
+
+    if (req.body.stock !== undefined && Number(req.body.stock) !== prevStock) {
+      const newStock = Number(req.body.stock);
+      await evaluateStockAlerts({
+        product: item,
+        previousStock: prevStock,
+        currentStock: newStock,
+        actor: req.user ? req.user.id : null,
+        reason: newStock > prevStock ? 'restock' : 'manual_adjustment',
+      });
+    }
 
     res.status(200).json({ success: true, data: item });
   } catch (err) {

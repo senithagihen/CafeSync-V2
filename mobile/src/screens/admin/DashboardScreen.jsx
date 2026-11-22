@@ -7,11 +7,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { adminOrdersAPI, adminInventoryAPI, adminReservationsAPI, adminPaymentsAPI } from '../../api';
+import { adminOrdersAPI, adminInventoryAPI, adminReservationsAPI, adminPaymentsAPI, notificationAPI } from '../../api';
 import { RADIUS, TOUCH_TARGET } from '../../constants/spacing';
 import { FONTS } from '../../constants/typography';
 import { SHADOWS } from '../../constants/colors';
 import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
+import AdminAssistantModal from '../../components/admin/AdminAssistantModal';
+import StaffNotificationModal from '../../components/admin/StaffNotificationModal';
 
 const StatCard = ({ icon, label, value, color, delay, colors }) => {
   const anim = useRef(new Animated.Value(0)).current;
@@ -34,19 +36,22 @@ const StatCard = ({ icon, label, value, color, delay, colors }) => {
       ]}
     >
       <Ionicons name={icon} size={22} color={color} />
-      <Text style={[styles.statValue, { color: colors.text, fontFamily: FONTS.serif }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.textLight }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: colors.text, fontFamily: FONTS.serif }]} numberOfLines={1}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.textLight }]} numberOfLines={1}>{label}</Text>
     </Animated.View>
   );
 };
 
 const DashboardScreen = () => {
   const { logout } = useContext(AuthContext);
-  const { colors } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   const [data, setData] = useState({ orders: [], inventory: [], reservations: [], payments: [] });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showAssistantModal, setShowAssistantModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
   const headerAnim = useRef(new Animated.Value(-40)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
 
@@ -66,13 +71,21 @@ const DashboardScreen = () => {
     ]).start();
   }, [headerAnim, headerOpacity]);
 
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await notificationAPI.unreadCount();
+      setUnreadAlertsCount(res.data?.unreadCount || 0);
+    } catch { }
+  };
+
   const fetchAll = async () => {
     try {
-      const [o, i, r, p] = await Promise.all([
+      const [o, i, r, p, n] = await Promise.all([
         adminOrdersAPI.getAll(),
         adminInventoryAPI.getAll(),
         adminReservationsAPI.getAll(),
         adminPaymentsAPI.getAll(),
+        notificationAPI.unreadCount().catch(() => ({ data: { unreadCount: 0 } })),
       ]);
       setData({
         orders: o.data.data || [],
@@ -80,6 +93,7 @@ const DashboardScreen = () => {
         reservations: r.data.data || [],
         payments: p.data.data || [],
       });
+      setUnreadAlertsCount(n.data?.unreadCount || 0);
     } catch (e) {
       console.log(e?.message);
     } finally {
@@ -113,24 +127,64 @@ const DashboardScreen = () => {
       >
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            <HeaderBrandLogo targetScreen="Dashboard" />
+            <HeaderBrandLogo targetScreen="Dashboard" size={34} />
             <View style={styles.headerTitles}>
-              <Text style={[styles.headerSup, { color: colors.accent }]}>CAFE MANAGEMENT</Text>
-              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+              <Text style={[styles.headerSup, { color: colors.accent }]} numberOfLines={1}>CAFE MANAGEMENT</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]} numberOfLines={1}>
                 Dashboard
               </Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={[styles.logoutBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
-            onPress={logout}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Sign out from admin panel"
-          >
-            <Ionicons name="log-out-outline" size={16} color={colors.primary} />
-            <Text style={[styles.logoutText, { color: colors.primary }]}>Sign Out</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {/* Notification Bell */}
+            <TouchableOpacity
+              style={[styles.actionPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+              onPress={() => setShowNotificationModal(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Staff Notifications"
+            >
+              <Ionicons name="notifications-outline" size={17} color={unreadAlertsCount > 0 ? colors.warning : colors.textMid} />
+              {unreadAlertsCount > 0 && (
+                <View style={[styles.badgeDot, { backgroundColor: colors.danger }]}>
+                  <Text style={styles.notifBadgeText}>{unreadAlertsCount > 9 ? '9+' : unreadAlertsCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Admin AI Assistant Button */}
+            <TouchableOpacity
+              style={[styles.actionPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+              onPress={() => setShowAssistantModal(true)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Admin Operations Assistant"
+            >
+              <Ionicons name="sparkles" size={16} color={colors.accent || colors.primary} />
+            </TouchableOpacity>
+
+            {/* Theme Toggle */}
+            <TouchableOpacity
+              style={[styles.actionPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+              onPress={toggleTheme}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={isDark ? 'Switch to Day theme' : 'Switch to Night theme'}
+            >
+              <Ionicons name={isDark ? 'sunny' : 'moon'} size={17} color={colors.accent} />
+            </TouchableOpacity>
+
+            {/* Sign Out */}
+            <TouchableOpacity
+              style={[styles.actionPill, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+              onPress={logout}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Sign out from admin panel"
+            >
+              <Ionicons name="log-out-outline" size={17} color={colors.danger} />
+            </TouchableOpacity>
+          </View>
         </View>
       </Animated.View>
 
@@ -143,6 +197,39 @@ const DashboardScreen = () => {
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
         ) : (
           <>
+            {/* Operations Assistant & Smart Alerts Card */}
+            <View style={[styles.aiBanner, { backgroundColor: colors.surface, borderColor: colors.divider }, SHADOWS.card.web]}>
+              <View style={styles.aiBannerLeft}>
+                <View style={[styles.aiIconBg, { backgroundColor: colors.accent + '20' }]}>
+                  <Ionicons name="sparkles" size={20} color={colors.accent || colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.aiBannerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>Operations Assistant</Text>
+                  <Text style={[styles.aiBannerSub, { color: colors.textLight }]}>
+                    {unreadAlertsCount > 0 ? `${unreadAlertsCount} active stock alerts need attention` : 'Sales analysis, low stock warnings & order pipeline'}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                <TouchableOpacity
+                  style={[styles.aiBannerBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => setShowAssistantModal(true)}
+                >
+                  <Ionicons name="chatbubbles-outline" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.aiBannerBtnText}>Ask Assistant</Text>
+                </TouchableOpacity>
+                {unreadAlertsCount > 0 && (
+                  <TouchableOpacity
+                    style={[styles.aiBannerBtn, { backgroundColor: colors.warning }]}
+                    onPress={() => setShowNotificationModal(true)}
+                  >
+                    <Ionicons name="alert-circle-outline" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.aiBannerBtnText}>Review Alerts</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
             {/* Stats Grid */}
             <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
               Overview
@@ -205,28 +292,28 @@ const DashboardScreen = () => {
                     ]}
                   >
                     <View style={[styles.orderDot, { backgroundColor: STATUS_COLORS[order.status] || colors.primary }]} />
-                    <View style={styles.orderInfo}>
+                    <View style={[styles.orderInfo, { minWidth: 0 }]}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Ionicons
                           name={order.orderType === 'Dine-In' ? 'restaurant-outline' : order.orderType === 'Takeaway' ? 'bag-handle-outline' : 'bicycle-outline'}
                           size={14}
                           color={colors.textMid}
                         />
-                        <Text style={[styles.orderId, { color: colors.text }]}>#{orderReference(order._id)}</Text>
+                        <Text style={[styles.orderId, { color: colors.text }]} numberOfLines={1}>#{orderReference(order._id)}</Text>
                       </View>
-                      <Text style={[styles.orderMeta, { color: colors.textMid }]}>
+                      <Text style={[styles.orderMeta, { color: colors.textMid }]} numberOfLines={1}>
                         {itemCount(order.items?.length)} · Rs. {order.totalAmount?.toFixed(2)}
                       </Text>
                     </View>
-                    <View style={{ gap: 4, alignItems: 'flex-end' }}>
+                    <View style={{ gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
                       <View style={[styles.badge, { backgroundColor: (STATUS_COLORS[order.status] || colors.primary) + '18' }]}>
-                        <Text style={[styles.badgeText, { color: STATUS_COLORS[order.status] || colors.primary }]}>
-                          Order · {order.status}
+                        <Text style={[styles.badgeText, { color: STATUS_COLORS[order.status] || colors.primary }]} numberOfLines={1}>
+                          {order.status}
                         </Text>
                       </View>
                       <View style={[styles.badge, { backgroundColor: payColor + '18' }]}>
-                        <Text style={[styles.badgeText, { color: payColor }]}>
-                          Payment · {order.paymentStatus || 'Pending'}
+                        <Text style={[styles.badgeText, { color: payColor }]} numberOfLines={1}>
+                          {order.paymentStatus || 'Pending'}
                         </Text>
                       </View>
                     </View>
@@ -237,6 +324,20 @@ const DashboardScreen = () => {
           </>
         )}
       </ScrollView>
+
+      {/* Admin Operations AI Assistant Modal */}
+      <AdminAssistantModal
+        visible={showAssistantModal}
+        onClose={() => setShowAssistantModal(false)}
+        dashboardData={data}
+      />
+
+      {/* Staff Low-Stock & Operational Alerts Modal */}
+      <StaffNotificationModal
+        visible={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+        onRefreshCount={fetchUnreadCount}
+      />
     </SafeAreaView>
   );
 };
@@ -260,29 +361,62 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     flex: 1,
-    marginRight: 10,
+    minWidth: 0,
+    marginRight: 8,
   },
   headerTitles: {
     flex: 1,
+    minWidth: 0,
   },
   headerSup: {
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     fontFamily: FONTS.sans,
-    marginBottom: 2,
+    marginBottom: 1,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800' },
-  logoutBtn: {
-    paddingHorizontal: 14,
-    minHeight: TOUCH_TARGET.min,
-    borderRadius: RADIUS.base,
+  headerTitle: { fontSize: 22, fontWeight: '800' },
+  actionPill: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  themePill: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoutBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoutText: { fontWeight: '700', fontSize: 13, fontFamily: FONTS.sans },
   scroll: {
@@ -291,6 +425,44 @@ const styles = StyleSheet.create({
     maxWidth: 1120,
     width: '100%',
     alignSelf: 'center',
+  },
+  aiBanner: {
+    borderRadius: RADIUS.xl,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  aiBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  aiIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiBannerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  aiBannerSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  aiBannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: RADIUS.md,
+  },
+  aiBannerBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
   sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 12, marginTop: 10 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },

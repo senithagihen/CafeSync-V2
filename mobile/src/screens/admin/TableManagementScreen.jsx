@@ -3,11 +3,11 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, FlatList,
   TouchableOpacity, ActivityIndicator, Platform, ScrollView, RefreshControl,
-
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { adminOrdersAPI, adminReservationsAPI } from '../../api';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { Alert } from '../../utils/alert';
 import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
@@ -48,6 +48,7 @@ const RES_STATUS_CONFIG = {
 };
 
 const TableManagementScreen = () => {
+  const { colors, isDark, toggleTheme } = useTheme();
   const [tables, setTables] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,8 +73,12 @@ const TableManagementScreen = () => {
       const fetchedReservations = resRes.data.data || [];
       setReservations(fetchedReservations);
       setTables(buildTables(ordRes.data.data || [], fetchedReservations));
-    } catch (e) { console.log(e?.message); }
-    finally { setLoading(false); setRefreshing(false); }
+    } catch (e) {
+      console.log(e?.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const updateResStatus = async (id, status) => {
@@ -81,8 +86,11 @@ const TableManagementScreen = () => {
     try {
       await adminReservationsAPI.update(id, { status });
       fetchAll();
-    } catch (e) { console.log(e?.message); }
-    finally { setUpdatingRes(null); }
+    } catch (e) {
+      Alert.alert('Update Failed', e.response?.data?.error || e.message || 'Could not update reservation');
+    } finally {
+      setUpdatingRes(null);
+    }
   };
 
   const handleDeleteRes = async (id) => {
@@ -99,8 +107,11 @@ const TableManagementScreen = () => {
             try {
               await adminReservationsAPI.delete(id);
               fetchAll();
-            } catch (e) { console.log(e?.message); }
-            finally { setUpdatingRes(null); }
+            } catch (e) {
+              Alert.alert('Delete Failed', e.response?.data?.error || e.message || 'Could not delete reservation');
+            } finally {
+              setUpdatingRes(null);
+            }
           }
         }
       ]
@@ -114,22 +125,22 @@ const TableManagementScreen = () => {
     : resFilter === 'All' ? reservations : reservations.filter(r => r.status === resFilter);
 
   const renderReservationItem = ({ item: r }) => {
-    const color = RES_STATUS_CONFIG[r.status]?.color || COLORS.textLight;
+    const color = RES_STATUS_CONFIG[r.status]?.color || colors.textLight;
     return (
-      <View style={styles.resCard}>
+      <View style={[styles.resCard, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
         <View style={styles.resCardTop}>
           <View style={[styles.resIconBg, { backgroundColor: color + '12' }]}>
             <Ionicons name={RES_STATUS_CONFIG[r.status]?.icon} size={22} color={color} />
           </View>
-          <View style={styles.resInfo}>
-            <Text style={styles.resTableTitle}>Table {r.tableNumber}</Text>
-            <Text style={styles.resCustomerName}>{r.customer?.name || 'Customer'}</Text>
+          <View style={[styles.resInfo, { minWidth: 0 }]}>
+            <Text style={[styles.resTableTitle, { color: colors.text }]} numberOfLines={1}>Table {r.tableNumber}</Text>
+            <Text style={[styles.resCustomerName, { color: colors.textLight }]} numberOfLines={1}>{r.customer?.name || 'Customer'}</Text>
           </View>
           <View style={[styles.resBadge, { backgroundColor: color + '12' }]}>
             <Text style={[styles.resBadgeText, { color }]}>{r.status}</Text>
           </View>
           <TouchableOpacity accessibilityRole="button"
-            style={styles.resTrashBtn} 
+            style={[styles.resTrashBtn, { backgroundColor: colors.dangerLight }]} 
             accessibilityLabel={`Delete reservation for table ${r.tableNumber}`} onPress={() => handleDeleteRes(r._id)}
             disabled={!!updatingRes}
           >
@@ -139,22 +150,22 @@ const TableManagementScreen = () => {
 
         <View style={styles.resMetaRow}>
           <View style={styles.resMetaItemRow}>
-            <Ionicons name="calendar-outline" size={12} color={COLORS.textLight} />
-            <Text style={styles.resMetaItem}>{new Date(r.date).toDateString()}</Text>
+            <Ionicons name="calendar-outline" size={12} color={colors.textLight} />
+            <Text style={[styles.resMetaItem, { color: colors.textMid }]}>{new Date(r.date).toDateString()}</Text>
           </View>
           <View style={styles.resMetaItemRow}>
-            <Ionicons name="time-outline" size={12} color={COLORS.textLight} />
-            <Text style={styles.resMetaItem}>{r.time}</Text>
+            <Ionicons name="time-outline" size={12} color={colors.textLight} />
+            <Text style={[styles.resMetaItem, { color: colors.textMid }]}>{r.time}</Text>
           </View>
           <View style={styles.resMetaItemRow}>
-            <Ionicons name="people-outline" size={12} color={COLORS.textLight} />
-            <Text style={styles.resMetaItem}>{r.guests} guests</Text>
+            <Ionicons name="people-outline" size={12} color={colors.textLight} />
+            <Text style={[styles.resMetaItem, { color: colors.textMid }]}>{r.guests} guests</Text>
           </View>
         </View>
         {r.specialRequests ? (
-          <View style={styles.resSpecialRow}>
-            <Ionicons name="document-text-outline" size={12} color={COLORS.textMid} />
-            <Text style={styles.resSpecial}>{r.specialRequests}</Text>
+          <View style={[styles.resSpecialRow, { backgroundColor: colors.surfaceAlt }]}>
+            <Ionicons name="document-text-outline" size={12} color={colors.textMid} />
+            <Text style={[styles.resSpecial, { color: colors.textMid }]}>{r.specialRequests}</Text>
           </View>
         ) : null}
 
@@ -183,7 +194,7 @@ const TableManagementScreen = () => {
           )}
           {r.status === 'Confirmed' && (
             <TouchableOpacity accessibilityRole="button"
-              style={[styles.resActionBtn, { backgroundColor: COLORS.textLight, width: '100%' }]}
+              style={[styles.resActionBtn, { backgroundColor: colors.textLight, width: '100%' }]}
               onPress={() => updateResStatus(r._id, 'Completed')}
               disabled={!!updatingRes}
             >
@@ -198,51 +209,59 @@ const TableManagementScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={[styles.header, { backgroundColor: COLORS.background }]}>
-        <View style={styles.headerTitleRow}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <View style={[styles.headerTitleRow, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
           <View style={styles.headerLeft}>
-            <HeaderBrandLogo targetScreen="Dashboard" />
+            <HeaderBrandLogo targetScreen="Dashboard" size={34} />
             <View style={styles.headerTitles}>
-              <Text style={styles.headerTitle}>{viewMode === 'Map' ? 'Floor Manager' : 'Reservations'}</Text>
-              <Text style={styles.headerSub}>
+              <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{viewMode === 'Map' ? 'Floor Manager' : 'Reservations'}</Text>
+              <Text style={[styles.headerSub, { color: colors.textLight }]} numberOfLines={1}>
                 {viewMode === 'Map' ? 'Monitor live table occupancy' : `${upcoming.length} upcoming · ${reservations.length} total`}
               </Text>
             </View>
           </View>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+            onPress={toggleTheme}
+            style={[styles.themePill, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+          >
+            <Ionicons name={isDark ? 'sunny' : 'moon'} size={16} color={colors.accent || colors.primary} />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.switcher}>
+        <View style={[styles.switcher, { backgroundColor: colors.surfaceAlt }]}>
           <TouchableOpacity accessibilityRole="button"
-            style={[styles.switchBtn, viewMode === 'Map' && styles.switchBtnActive]}
+            style={[styles.switchBtn, viewMode === 'Map' && [styles.switchBtnActive, { backgroundColor: colors.surface }]]}
             onPress={() => setViewMode('Map')}
           >
-            <Ionicons name="grid" size={14} color={viewMode === 'Map' ? COLORS.secondary : COLORS.textMid} />
-            <Text style={[styles.switchText, viewMode === 'Map' && styles.switchTextActive]}>Map</Text>
+            <Ionicons name="grid" size={14} color={viewMode === 'Map' ? (colors.accent || colors.primary) : colors.textMid} />
+            <Text style={[styles.switchText, { color: colors.textMid }, viewMode === 'Map' && { color: colors.text, fontWeight: '900' }]}>Map</Text>
           </TouchableOpacity>
           <TouchableOpacity accessibilityRole="button"
-            style={[styles.switchBtn, viewMode === 'Reservations' && styles.switchBtnActive]}
+            style={[styles.switchBtn, viewMode === 'Reservations' && [styles.switchBtnActive, { backgroundColor: colors.surface }]]}
             onPress={() => setViewMode('Reservations')}
           >
-            <Ionicons name="calendar" size={14} color={viewMode === 'Reservations' ? THEME.Available.main : COLORS.textMid} />
-            <Text style={[styles.switchText, viewMode === 'Reservations' && styles.switchTextActive]}>List</Text>
+            <Ionicons name="calendar" size={14} color={viewMode === 'Reservations' ? THEME.Available.main : colors.textMid} />
+            <Text style={[styles.switchText, { color: colors.textMid }, viewMode === 'Reservations' && { color: colors.text, fontWeight: '900' }]}>List</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         viewMode === 'Map' ? (
           <ScrollView
             showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAll(); }} tintColor={COLORS.secondary} />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAll(); }} tintColor={colors.accent || colors.primary} />}
           >
             <View style={styles.legend}>
               {Object.entries(THEME).map(([key, info]) => (
                 <View key={key} style={styles.legendItem}>
                   <View style={[styles.dot, { backgroundColor: info.main }]} />
-                  <Text style={styles.legendText}>{info.label}</Text>
+                  <Text style={[styles.legendText, { color: colors.textMid }]}>{info.label}</Text>
                 </View>
               ))}
             </View>
@@ -256,7 +275,7 @@ const TableManagementScreen = () => {
                     key={table.num}
                     style={[
                       styles.tableCell,
-                      { backgroundColor: info.bg, borderColor: isSelected ? info.main : 'rgba(0,0,0,0.08)' },
+                      { backgroundColor: info.bg, borderColor: isSelected ? info.main : colors.divider },
                       isSelected && { borderWidth: 2.5 }
                     ]}
                     accessibilityLabel={`Table ${table.num}, ${table.status}`} onPress={() => setSelectedTable(isSelected ? null : table)}
@@ -275,10 +294,10 @@ const TableManagementScreen = () => {
             </View>
 
             {selectedTable && (
-              <View style={styles.detailPanel}>
+              <View style={[styles.detailPanel, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
                 <View style={[styles.panelIndicator, { backgroundColor: THEME[selectedTable.status].main }]} />
                 <View style={styles.panelHeader}>
-                  <Text style={styles.panelTitle}>Table {selectedTable.num}</Text>
+                  <Text style={[styles.panelTitle, { color: colors.text }]}>Table {selectedTable.num}</Text>
                   <View style={[styles.panelBadge, { backgroundColor: THEME[selectedTable.status].bg }]}>
                     <Text style={[styles.panelBadgeText, { color: THEME[selectedTable.status].text }]}>{selectedTable.status}</Text>
                   </View>
@@ -286,18 +305,18 @@ const TableManagementScreen = () => {
 
                 {selectedTable.order ? (
                   <View style={styles.panelBody}>
-                     <Text style={styles.panelLabel}>Active Order</Text>
-                     <Text style={styles.panelMain}>#{orderReference(selectedTable.order._id)} · {selectedTable.order.customer?.name || 'Walk-in'}</Text>
-                     <Text style={styles.panelSub}>{itemCount(selectedTable.order.items?.length)} · Rs. {selectedTable.order.totalAmount?.toFixed(0)}</Text>
+                     <Text style={[styles.panelLabel, { color: colors.textLight }]}>Active Order</Text>
+                     <Text style={[styles.panelMain, { color: colors.text }]}>#{orderReference(selectedTable.order._id)} · {selectedTable.order.customer?.name || 'Walk-in'}</Text>
+                     <Text style={[styles.panelSub, { color: colors.textMid }]}>{itemCount(selectedTable.order.items?.length)} · Rs. {selectedTable.order.totalAmount?.toFixed(0)}</Text>
                   </View>
                 ) : selectedTable.reservation ? (
                   <View style={styles.panelBody}>
-                     <Text style={styles.panelLabel}>Upcoming Reservation</Text>
-                     <Text style={styles.panelMain}>{selectedTable.reservation.customer?.name} · {selectedTable.reservation.guests} guests</Text>
-                     <Text style={styles.panelSub}>At {selectedTable.reservation.time}</Text>
+                     <Text style={[styles.panelLabel, { color: colors.textLight }]}>Upcoming Reservation</Text>
+                     <Text style={[styles.panelMain, { color: colors.text }]}>{selectedTable.reservation.customer?.name} · {selectedTable.reservation.guests} guests</Text>
+                     <Text style={[styles.panelSub, { color: colors.textMid }]}>At {selectedTable.reservation.time}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.panelEmpty}>This table is currently free and ready for new guests.</Text>
+                  <Text style={[styles.panelEmpty, { color: colors.textMid }]}>This table is currently free and ready for new guests.</Text>
                 )}
               </View>
             )}
@@ -313,10 +332,10 @@ const TableManagementScreen = () => {
                   return (
                     <TouchableOpacity accessibilityRole="button"
                       key={item}
-                      style={[styles.chip, active && { backgroundColor: color, borderColor: color }]}
+                      style={[styles.chip, { backgroundColor: colors.surface, borderColor: colors.divider }, active && { backgroundColor: color, borderColor: color }]}
                       onPress={() => setResFilter(item)}
                     >
-                      <Text style={[styles.chipText, active && { color: COLORS.white }]}>{item}</Text>
+                      <Text style={[styles.chipText, { color: colors.textMid }, active && { color: COLORS.white }]}>{item}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -331,8 +350,8 @@ const TableManagementScreen = () => {
               renderItem={renderReservationItem}
               ListEmptyComponent={
                 <View style={styles.empty}>
-                  <Ionicons name="calendar-outline" size={60} color={COLORS.divider} />
-                  <Text style={styles.emptyText}>No reservations found</Text>
+                  <Ionicons name="calendar-outline" size={60} color={colors.divider} />
+                  <Text style={[styles.emptyText, { color: colors.textLight }]}>No reservations found</Text>
                 </View>
               }
             />
@@ -344,7 +363,7 @@ const TableManagementScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     paddingTop: Platform.OS === 'android' ? 40 : 20,
     paddingBottom: 25, paddingHorizontal: 24,
@@ -352,10 +371,11 @@ const styles = StyleSheet.create({
   },
   headerCircle: { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.08)' },
   headerTitleRow: { marginBottom: 20 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerTitles: { flex: 1 },
-  headerTitle: { fontSize: 28, fontWeight: '900', color: COLORS.text },
-  headerSub: { fontSize: 14, color: COLORS.textLight, marginTop: 4 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 },
+  headerTitles: { flex: 1, minWidth: 0 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text },
+  headerSub: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
+  themePill: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   switcher: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.12)', borderRadius: 14, padding: 4 },
   switchBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12, flexDirection: 'row', justifyContent: 'center', gap: 8 },
   switchBtnActive: { backgroundColor: COLORS.white },
@@ -381,7 +401,8 @@ const styles = StyleSheet.create({
   seatBox: { width: 6, height: 6, borderRadius: 1.5, borderWidth: 1 },
 
   detailPanel: {
-    backgroundColor: COLORS.white, marginHorizontal: 20, marginTop: 24, borderRadius: 24, padding: 20,
+    backgroundColor: COLORS.surface, marginHorizontal: 20, marginTop: 24, borderRadius: 24, padding: 20,
+    borderWidth: 1, borderColor: COLORS.divider,
     overflow: 'hidden',
     ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 15 }, android: { elevation: 5 } }),
   },
@@ -397,11 +418,11 @@ const styles = StyleSheet.create({
   panelEmpty: { fontSize: 14, color: COLORS.textMid, fontStyle: 'italic', textAlign: 'center', paddingVertical: 10 },
 
   filterList: { paddingHorizontal: 20, gap: 10 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.white, borderWidth: 1.5, borderColor: COLORS.divider },
+  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1.5, borderColor: COLORS.divider },
   chipText: { fontSize: 13, fontWeight: '700', color: COLORS.textMid },
   list: { padding: 20, gap: 15, paddingBottom: 130 },
   resCard: {
-    backgroundColor: COLORS.white, borderRadius: 22, padding: 18,
+    backgroundColor: COLORS.surface, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: COLORS.divider,
     ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.05, shadowRadius: 12 }, android: { elevation: 3 } }),
   },
   resCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 15 },

@@ -177,10 +177,17 @@ const HomeScreen = ({ navigation, route }) => {
     try {
       if (orderType === 'Dine-In') {
         try {
+          const localBookingDate = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Colombo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }).format(new Date());
+
           await reservationsAPI.createReservation({
             tableNumber,
             guests: 1,
-            date: new Date().toISOString().split('T')[0],
+            date: localBookingDate,
             time: reservationTime,
             specialRequests: 'Auto-reserved via Order Checkout',
           });
@@ -309,12 +316,12 @@ const HomeScreen = ({ navigation, route }) => {
             <View style={[styles.brandMark, { backgroundColor: colors.primary }]}>
               <Ionicons name="cafe" size={20} color={colors.surface} />
             </View>
-            <View>
-              <Text style={[styles.brandText, { color: colors.text, fontFamily: FONTS.serif }]}>
+            <View style={{ minWidth: 0, flexShrink: 1 }}>
+              <Text style={[styles.brandText, { color: colors.text, fontFamily: FONTS.serif }]} numberOfLines={1}>
                 Cafe<Text style={{ color: colors.accent }}>Sync</Text>
                 <Text style={{ color: colors.copper }}>.</Text>
               </Text>
-              <Text style={[styles.brandSub, { color: colors.textLight }]}>A little time for yourself</Text>
+              <Text style={[styles.brandSub, { color: colors.textLight }]} numberOfLines={1}>A little time for yourself</Text>
             </View>
           </TouchableOpacity>
 

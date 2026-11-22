@@ -70,11 +70,11 @@ exports.updatePaymentStatus = async (req, res, next) => {
     payment.status = status;
     await payment.save();
 
-    // If payment completed, update order status
-    if (status === 'Completed') {
+    // Sync order payment status
+    if (status === 'Completed' || status === 'Failed') {
       const order = await Order.findById(payment.order);
       if (order) {
-        order.paymentStatus = 'Paid';
+        order.paymentStatus = status === 'Completed' ? 'Paid' : 'Failed';
         await order.save();
       }
     }

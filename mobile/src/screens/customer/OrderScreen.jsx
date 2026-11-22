@@ -20,6 +20,11 @@ const OrderScreen = ({ navigation }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedOrders, setExpandedOrders] = useState({});
+
+  const toggleExpand = (id) => {
+    setExpandedOrders(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const headerAnim = useRef(new Animated.Value(-30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -138,37 +143,71 @@ const OrderScreen = ({ navigation }) => {
     </View>
   );
 
-  const renderHistoryItem = (item) => (
-    <View
-      key={item._id}
-      style={[
-        styles.historyCard,
-        { backgroundColor: colors.surface, borderColor: colors.divider },
-      ]}
-    >
-      <View style={[styles.historyIconBg, { backgroundColor: STATUS_COLORS[item.status] + '14' }]}>
-        <Ionicons
-          name={item.orderType === 'Dine-In' ? 'restaurant-outline' : item.orderType === 'Takeaway' ? 'bag-handle-outline' : 'bicycle-outline'}
-          size={20}
-          color={STATUS_COLORS[item.status]}
-        />
+  const renderHistoryItem = (item) => {
+    const isExpanded = !!expandedOrders[item._id];
+    return (
+      <View
+        key={item._id}
+        style={[
+          styles.historyCard,
+          { backgroundColor: colors.surface, borderColor: colors.divider },
+        ]}
+      >
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => toggleExpand(item._id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Order ${orderReference(item._id)}, tap to ${isExpanded ? 'collapse' : 'expand'} item details`}
+          style={styles.historyCardHeader}
+        >
+          <View style={[styles.historyIconBg, { backgroundColor: STATUS_COLORS[item.status] + '14' }]}>
+            <Ionicons
+              name={item.orderType === 'Dine-In' ? 'restaurant-outline' : item.orderType === 'Takeaway' ? 'bag-handle-outline' : 'bicycle-outline'}
+              size={20}
+              color={STATUS_COLORS[item.status]}
+            />
+          </View>
+          <View style={styles.historyInfo}>
+            <Text style={[styles.historyNum, { color: colors.text, fontFamily: FONTS.serif }]}>
+              {item.orderType} #{orderReference(item._id)}
+            </Text>
+            <Text style={[styles.historyMeta, { color: colors.textMid }]}>
+              {itemCount(item.items?.length)} • Rs. {item.totalAmount?.toFixed(2)}
+            </Text>
+            <Text style={[styles.historyDate, { color: colors.textLight }]}>
+              {new Date(item.createdAt).toLocaleDateString()}
+            </Text>
+          </View>
+          <View style={{ alignItems: 'flex-end', gap: 6 }}>
+            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[item.status] + '18' }]}>
+              <Text style={[styles.statusText, { color: STATUS_COLORS[item.status] }]}>{item.status}</Text>
+            </View>
+            <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textLight} />
+          </View>
+        </TouchableOpacity>
+
+        {isExpanded && (
+          <View style={[styles.historyItemsDropdown, { borderTopColor: colors.divider, backgroundColor: colors.surfaceAlt }]}>
+            {item.items?.map((it, idx) => (
+              <View key={idx} style={styles.historyItemRow}>
+                <Text style={[styles.historyItemName, { color: colors.text }]}>{it.name}</Text>
+                <Text style={[styles.historyItemQty, { color: colors.textLight }]}>×{it.quantity}</Text>
+                <Text style={[styles.historyItemPrice, { color: colors.primary }]}>
+                  Rs. {((it.price || 0) * (it.quantity || 1)).toFixed(2)}
+                </Text>
+              </View>
+            ))}
+            {!!item.tableNumber && (
+              <Text style={[styles.historyDetailMeta, { color: colors.textLight }]}>Dine-in at Table #{item.tableNumber}</Text>
+            )}
+            {!!item.deliveryAddress && (
+              <Text style={[styles.historyDetailMeta, { color: colors.textLight }]}>Delivery: {item.deliveryAddress}</Text>
+            )}
+          </View>
+        )}
       </View>
-      <View style={styles.historyInfo}>
-        <Text style={[styles.historyNum, { color: colors.text, fontFamily: FONTS.serif }]}>
-          {item.orderType} #{orderReference(item._id)}
-        </Text>
-        <Text style={[styles.historyMeta, { color: colors.textMid }]}>
-          {itemCount(item.items?.length)} • Rs. {item.totalAmount?.toFixed(2)}
-        </Text>
-        <Text style={[styles.historyDate, { color: colors.textLight }]}>
-          {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
-      </View>
-      <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[item.status] + '18' }]}>
-        <Text style={[styles.statusText, { color: STATUS_COLORS[item.status] }]}>{item.status}</Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -186,10 +225,10 @@ const OrderScreen = ({ navigation }) => {
       >
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
-            <HeaderBrandLogo />
+            <HeaderBrandLogo size={34} />
             <View style={styles.headerTitles}>
-              <Text style={[styles.headerSup, { color: colors.accent }]}>YOUR ORDERS</Text>
-              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+              <Text style={[styles.headerSup, { color: colors.accent }]} numberOfLines={1}>YOUR ORDERS</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]} numberOfLines={1}>
                 Recent Brews
               </Text>
             </View>
@@ -286,15 +325,16 @@ const styles = StyleSheet.create({
   },
   headerTitles: {
     flex: 1,
+    minWidth: 0,
   },
   headerSup: {
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     fontFamily: FONTS.sans,
-    marginBottom: 2,
+    marginBottom: 1,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800' },
+  headerTitle: { fontSize: 22, fontWeight: '800' },
   refreshBtn: {
     width: TOUCH_TARGET.min,
     height: TOUCH_TARGET.min,
@@ -375,12 +415,47 @@ const styles = StyleSheet.create({
   activeTotal: { fontSize: 17, fontWeight: '800', fontFamily: FONTS.sans },
   historyCard: {
     borderRadius: RADIUS.lg,
+    marginBottom: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  historyCardHeader: {
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 10,
-    borderWidth: 1,
+  },
+  historyItemsDropdown: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    gap: 6,
+  },
+  historyItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  historyItemName: {
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+    fontFamily: FONTS.sans,
+  },
+  historyItemQty: {
+    fontSize: 12,
+    marginHorizontal: 8,
+    fontFamily: FONTS.sans,
+  },
+  historyItemPrice: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: FONTS.sans,
+  },
+  historyDetailMeta: {
+    fontSize: 11,
+    marginTop: 4,
+    fontFamily: FONTS.sans,
   },
   historyIconBg: {
     width: 44,

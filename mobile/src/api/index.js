@@ -1,5 +1,7 @@
 import apiClient from './client';
 export { assistantAPI } from './assistant.api';
+export { adminAssistantAPI } from './admin-assistant.api';
+export { notificationAPI } from './notification.api';
 
 // Auth
 export const authAPI = {

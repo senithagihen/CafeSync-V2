@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { adminOrdersAPI } from '../../api';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { Alert } from '../../utils/alert';
 import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
@@ -35,42 +36,42 @@ const PAY_STATUS_CONFIG = {
 };
 
 // ─── ORDER CARD ───────────────────────────────────────────────────────────────
-const OrderCard = ({ order, onUpdateStatus, onUpdatePayment, onDelete, updatingId }) => {
+const OrderCard = ({ order, onUpdateStatus, onUpdatePayment, onDelete, updatingId, colors }) => {
   const sCfg         = STATUS_CONFIG[order.status] || STATUS_CONFIG.Pending;
   const nextStatus   = STATUS_FLOW[order.status];
   const typeConfig   = ORDER_TYPE_CONFIG[order.orderType] || ORDER_TYPE_CONFIG['Dine-In'];
   const payCfg       = PAY_STATUS_CONFIG[order.paymentStatus] || PAY_STATUS_CONFIG.Pending;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
       <View style={styles.cardHeader}>
         <View style={[styles.typeIconBg, { backgroundColor: typeConfig.color + '12' }]}>
           <Ionicons name={typeConfig.icon} size={24} color={typeConfig.color} />
         </View>
         <View style={styles.cardHeaderMain}>
           <View style={styles.cardHeaderTop}>
-            <Text style={styles.orderIdText}>#{orderReference(order._id)}</Text>
+            <Text style={[styles.orderIdText, { color: colors.text }]}>#{orderReference(order._id)}</Text>
             <View style={[styles.statusBadge, { backgroundColor: sCfg.color + '15' }]}>
               <Text style={[styles.statusBadgeText, { color: sCfg.color }]}>{order.status}</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.customerName}>{order.customer?.name || 'Walk-in Customer'}</Text>
+            <Text style={[styles.customerName, { color: colors.textLight }]}>{order.customer?.name || 'Walk-in Customer'}</Text>
             <TouchableOpacity accessibilityRole="button"
-              style={styles.trashBtn} 
+              style={[styles.trashBtn, { backgroundColor: colors.dangerLight }]} 
               accessibilityLabel={`Delete order ${orderReference(order._id)}`} onPress={() => onDelete(order._id)}
               disabled={!!updatingId}
             >
-              <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+              <Ionicons name="trash-outline" size={16} color={colors.danger} />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      <View style={styles.metaStrip}>
+      <View style={[styles.metaStrip, { backgroundColor: colors.surfaceAlt }]}>
         <View style={styles.metaItem}>
-          <Ionicons name="time-outline" size={12} color={COLORS.textLight} />
-          <Text style={styles.metaText}>{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+          <Ionicons name="time-outline" size={12} color={colors.textLight} />
+          <Text style={[styles.metaText, { color: colors.textMid }]}>{new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
         </View>
         <View style={styles.metaItem}>
           <Ionicons name="card-outline" size={12} color={payCfg.color} />
@@ -78,23 +79,23 @@ const OrderCard = ({ order, onUpdateStatus, onUpdatePayment, onDelete, updatingI
         </View>
         {order.tableNumber && (
           <View style={styles.metaItem}>
-            <Ionicons name="location-outline" size={12} color={COLORS.primary} />
-            <Text style={styles.metaText}>Table {order.tableNumber}</Text>
+            <Ionicons name="location-outline" size={12} color={colors.primary} />
+            <Text style={[styles.metaText, { color: colors.primary }]}>Table {order.tableNumber}</Text>
           </View>
         )}
       </View>
 
-      <View style={styles.itemsBox}>
+      <View style={[styles.itemsBox, { borderBottomColor: colors.divider }]}>
         {order.items?.map((it, idx) => (
           <View key={idx} style={styles.itemRow}>
-            <Text style={styles.itemName} numberOfLines={1}>{it.name}</Text>
-            <Text style={styles.itemQty}>×{it.quantity}</Text>
-            <Text style={styles.itemTotal}>Rs. {(it.price * it.quantity).toFixed(0)}</Text>
+            <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={1}>{it.name}</Text>
+            <Text style={[styles.itemQty, { color: colors.textLight }]}>×{it.quantity}</Text>
+            <Text style={[styles.itemTotal, { color: colors.text }]}>Rs. {(it.price * it.quantity).toFixed(0)}</Text>
           </View>
         ))}
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Grand Total</Text>
-          <Text style={styles.totalValue}>Rs. {order.totalAmount?.toFixed(2)}</Text>
+          <Text style={[styles.totalLabel, { color: colors.textLight }]}>Grand Total</Text>
+          <Text style={[styles.totalValue, { color: colors.primary }]}>Rs. {order.totalAmount?.toFixed(2)}</Text>
         </View>
       </View>
 
@@ -115,14 +116,14 @@ const OrderCard = ({ order, onUpdateStatus, onUpdatePayment, onDelete, updatingI
         
         {order.paymentStatus === 'Pending' && (
           <TouchableOpacity accessibilityRole="button"
-            style={styles.secAction}
+            style={[styles.secAction, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
             onPress={() => onUpdatePayment(order._id, 'Paid')}
             disabled={!!updatingId}
           >
             {updatingId === order._id + 'pay' ? (
-              <ActivityIndicator size="small" color={COLORS.success} />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <Text style={styles.secActionText}>Mark as Paid</Text>
+              <Text style={[styles.secActionText, { color: colors.primary }]}>Mark as Paid</Text>
             )}
           </TouchableOpacity>
         )}
@@ -133,6 +134,7 @@ const OrderCard = ({ order, onUpdateStatus, onUpdatePayment, onDelete, updatingI
 
 // ─── MAIN SCREEN ──────────────────────────────────────────────────────────────
 const OrderManagementScreen = () => {
+  const { colors, isDark, toggleTheme } = useTheme();
   const [orders, setOrders]       = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -165,8 +167,9 @@ const OrderManagementScreen = () => {
             try {
               await adminOrdersAPI.deleteOrder(id);
               setOrders(prev => prev.filter(o => o._id !== id));
-            } catch (e) { console.log(e?.message); }
-            finally { setUpdatingId(null); }
+            } catch (e) {
+              Alert.alert('Delete Failed', e.message || 'Could not delete order');
+            } finally { setUpdatingId(null); }
           }
         }
       ]
@@ -177,8 +180,9 @@ const OrderManagementScreen = () => {
     try {
       const res = await adminOrdersAPI.getAll();
       setOrders(res.data.data || []);
-    } catch (e) { console.log(e?.message); }
-    finally { setLoading(false); setRefreshing(false); }
+    } catch (e) {
+      console.log(e?.message);
+    } finally { setLoading(false); setRefreshing(false); }
   };
 
   const updateStatus = async (id, status) => {
@@ -186,8 +190,9 @@ const OrderManagementScreen = () => {
     try {
       await adminOrdersAPI.updateStatus(id, status);
       setOrders(prev => prev.map(o => o._id === id ? { ...o, status } : o));
-    } catch (e) { console.log(e?.message); }
-    finally { setUpdatingId(null); }
+    } catch (e) {
+      Alert.alert('Update Failed', e.message || 'Could not update order status');
+    } finally { setUpdatingId(null); }
   };
 
   const updatePayment = async (id, paymentStatus) => {
@@ -195,8 +200,9 @@ const OrderManagementScreen = () => {
     try {
       await adminOrdersAPI.updatePaymentStatus(id, paymentStatus);
       setOrders(prev => prev.map(o => o._id === id ? { ...o, paymentStatus } : o));
-    } catch (e) { console.log(e?.message); }
-    finally { setUpdatingId(null); }
+    } catch (e) {
+      Alert.alert('Payment Update Failed', e.message || 'Could not update payment status');
+    } finally { setUpdatingId(null); }
   };
 
   const allStatuses  = ['Pending', 'Preparing', 'Ready', 'Completed', 'Cancelled'];
@@ -211,15 +217,24 @@ const OrderManagementScreen = () => {
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
-      <View style={styles.hero}>
+      <View style={[styles.hero, { backgroundColor: colors.background }]}>
         <View style={styles.heroTop}>
           <View style={styles.headerLeft}>
-            <HeaderBrandLogo targetScreen="Dashboard" />
+            <HeaderBrandLogo targetScreen="Dashboard" size={34} />
             <View style={styles.headerTitles}>
-              <Text style={styles.heroTitle}>Orders</Text>
-              <Text style={styles.heroSub}>{activeCount} active · {orders.length} total</Text>
+              <Text style={[styles.heroTitle, { color: colors.text }]} numberOfLines={1}>Orders</Text>
+              <Text style={[styles.heroSub, { color: colors.textLight }]} numberOfLines={1}>{activeCount} active · {orders.length} total</Text>
             </View>
           </View>
+          <TouchableOpacity
+            style={[styles.themePill, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+            onPress={toggleTheme}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={isDark ? 'Switch to Day theme' : 'Switch to Night theme'}
+          >
+            <Ionicons name={isDark ? 'sunny' : 'moon'} size={17} color={colors.accent} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -228,16 +243,19 @@ const OrderManagementScreen = () => {
           {['All', ...allTypes].map(item => {
             const active = typeFilter === item;
             const cfg = ORDER_TYPE_CONFIG[item];
-            const color = cfg?.color || COLORS.secondary;
+            const color = cfg?.color || colors.secondary;
             return (
               <TouchableOpacity accessibilityRole="button"
                 key={item}
-                style={[styles.chip, active && { backgroundColor: color, borderColor: color }]}
+                style={[
+                  styles.chip,
+                  { backgroundColor: active ? color : colors.surface, borderColor: active ? color : colors.divider },
+                ]}
                 onPress={() => setTypeFilter(item)}
               >
                 <View style={styles.chipContent}>
                   <Ionicons name={item === 'All' ? 'grid' : cfg?.icon} size={14} color={active ? COLORS.white : color} />
-                  <Text style={[styles.chipText, active && { color: COLORS.white }]}>{item}</Text>
+                  <Text style={[styles.chipText, { color: active ? COLORS.white : colors.textMid }]}>{item}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -247,17 +265,20 @@ const OrderManagementScreen = () => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterScroll, { marginTop: 10 }]}>
           {['All', ...allStatuses].map(item => {
             const active = statusFilter === item;
-            const color = STATUS_CONFIG[item]?.color || COLORS.secondary;
+            const color = STATUS_CONFIG[item]?.color || colors.secondary;
             const cnt = item === 'All' ? orders.length : orders.filter(o => o.status === item).length;
             return (
               <TouchableOpacity accessibilityRole="button"
                 key={item}
-                style={[styles.chip, active && { backgroundColor: color, borderColor: color }]}
+                style={[
+                  styles.chip,
+                  { backgroundColor: active ? color : colors.surface, borderColor: active ? color : colors.divider },
+                ]}
                 onPress={() => setStatusFilter(item)}
               >
                 <View style={styles.chipContent}>
                   <Ionicons name={item === 'All' ? 'list' : STATUS_CONFIG[item]?.icon} size={14} color={active ? COLORS.white : color} />
-                  <Text style={[styles.chipText, active && { color: COLORS.white }]}>{item}</Text>
+                  <Text style={[styles.chipText, { color: active ? COLORS.white : colors.textMid }]}>{item}</Text>
                   {cnt > 0 && <View style={styles.countTag}><Text style={[styles.countTagText, { color: active ? color : COLORS.white }]}>{cnt}</Text></View>}
                 </View>
               </TouchableOpacity>
@@ -269,7 +290,7 @@ const OrderManagementScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <FlatList
           data={filtered}
@@ -277,7 +298,7 @@ const OrderManagementScreen = () => {
           ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchOrders(); }} tintColor={COLORS.primary} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchOrders(); }} tintColor={colors.accent} />}
           renderItem={({ item }) => (
             <OrderCard
               order={item}
@@ -285,20 +306,21 @@ const OrderManagementScreen = () => {
               onUpdatePayment={updatePayment}
               onDelete={handleDelete}
               updatingId={updatingId}
+              colors={colors}
             />
           )}
           ListEmptyComponent={!loading && (
             <View style={styles.empty}>
-              <Ionicons name="receipt-outline" size={60} color={COLORS.divider} />
-              <Text style={styles.emptyTitle}>No Orders Found</Text>
-              <Text style={styles.emptySub}>Adjust your filters to see more orders.</Text>
+              <Ionicons name="receipt-outline" size={60} color={colors.divider} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>No Orders Found</Text>
+              <Text style={[styles.emptySub, { color: colors.textLight }]}>Adjust your filters to see more orders.</Text>
             </View>
           )}
         />
       </Animated.View>
       {loading && (
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
     </SafeAreaView>
@@ -319,10 +341,11 @@ const styles = StyleSheet.create({
   },
   headerCircle: { position: 'absolute', top: -30, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)' },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  headerTitles: { flex: 1 },
-  heroTitle: { fontSize: 26, fontWeight: '900', color: COLORS.text },
-  heroSub: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
+  themePill: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, marginRight: 8 },
+  headerTitles: { flex: 1, minWidth: 0 },
+  heroTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text },
+  heroSub: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
   heroBadge: { 
     flexDirection: 'row', alignItems: 'center', gap: 4, 
     backgroundColor: COLORS.danger, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 

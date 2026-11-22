@@ -7,6 +7,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { adminPaymentsAPI } from '../../api';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
+import { Alert } from '../../utils/alert';
 import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const STATUS_CONFIG = {
@@ -16,6 +18,7 @@ const STATUS_CONFIG = {
 };
 
 const PaymentManagementScreen = () => {
+  const { colors, isDark, toggleTheme } = useTheme();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,8 +35,12 @@ const PaymentManagementScreen = () => {
     try {
       const res = await adminPaymentsAPI.getAll();
       setPayments(res.data.data || []);
-    } catch (e) { console.log(e?.message); }
-    finally { setLoading(false); setRefreshing(false); }
+    } catch (e) {
+      console.log(e?.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const updateStatus = async (id, status) => {
@@ -41,25 +48,28 @@ const PaymentManagementScreen = () => {
     try {
       await adminPaymentsAPI.updateStatus(id, { status });
       setPayments(prev => prev.map(p => p._id === id ? { ...p, status } : p));
-    } catch (e) { console.log(e?.message); }
-    finally { setUpdating(null); }
+    } catch (e) {
+      Alert.alert('Payment Update Failed', e.response?.data?.error || e.message || 'Could not update payment status');
+    } finally {
+      setUpdating(null);
+    }
   };
 
   const filtered = filter === 'All' ? payments : payments.filter(p => p.status === filter);
   const totalRevenue = payments.filter(p => p.status === 'Completed').reduce((s, p) => s + p.amount, 0);
 
   const renderItem = ({ item: p }) => {
-    const color = STATUS_CONFIG[p.status]?.color || COLORS.textLight;
+    const color = STATUS_CONFIG[p.status]?.color || colors.textLight;
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
         <View style={styles.cardTop}>
           <View style={[styles.iconBg, { backgroundColor: color + '12' }]}>
             <Ionicons name={STATUS_CONFIG[p.status]?.icon} size={24} color={color} />
           </View>
           <View style={styles.info}>
-            <Text style={styles.amount}>Rs. {p.amount?.toFixed(2)}</Text>
-            <Text style={styles.meta}>{p.paymentMethod} • {p.customer?.name || 'Walk-in'}</Text>
-            <Text style={styles.date}>{new Date(p.createdAt).toLocaleString()}</Text>
+            <Text style={[styles.amount, { color: colors.text }]}>Rs. {p.amount?.toFixed(2)}</Text>
+            <Text style={[styles.meta, { color: colors.textMid }]}>{p.paymentMethod} • {p.customer?.name || 'Walk-in'}</Text>
+            <Text style={[styles.date, { color: colors.textLight }]}>{new Date(p.createdAt).toLocaleString()}</Text>
           </View>
           <View style={[styles.badge, { backgroundColor: color + '15' }]}>
             <Text style={[styles.badgeText, { color }]}>{p.status}</Text>
@@ -67,7 +77,7 @@ const PaymentManagementScreen = () => {
         </View>
 
         {p.status === 'Pending' && (
-          <View style={styles.btnRow}>
+          <View style={[styles.btnRow, { borderTopColor: colors.divider }]}>
             <TouchableOpacity accessibilityRole="button"
               style={[styles.actionBtn, { backgroundColor: COLORS.success }]}
               onPress={() => updateStatus(p._id, 'Completed')}
@@ -78,13 +88,13 @@ const PaymentManagementScreen = () => {
                 : <Text style={styles.actionText}>Approve</Text>}
             </TouchableOpacity>
             <TouchableOpacity accessibilityRole="button"
-              style={[styles.actionBtn, { backgroundColor: COLORS.dangerLight }]}
+              style={[styles.actionBtn, { backgroundColor: colors.dangerLight }]}
               onPress={() => updateStatus(p._id, 'Failed')}
               disabled={!!updating}
             >
               {updating === p._id + 'Failed'
-                ? <ActivityIndicator size="small" color={COLORS.danger} />
-                : <Text style={[styles.actionText, { color: COLORS.danger }]}>Reject</Text>}
+                ? <ActivityIndicator size="small" color={colors.danger} />
+                : <Text style={[styles.actionText, { color: colors.danger }]}>Reject</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -94,26 +104,36 @@ const PaymentManagementScreen = () => {
 
   const renderHeader = () => (
     <View style={styles.headerSection}>
-      <View style={styles.hero}>
+      <View style={[styles.hero, { backgroundColor: colors.background }]}>
         <View style={styles.heroContent}>
           <View style={styles.headerLeft}>
-            <HeaderBrandLogo targetScreen="Dashboard" />
+            <HeaderBrandLogo targetScreen="Dashboard" size={34} />
             <View style={styles.headerTitles}>
-              <Text style={styles.heroTitle}>Payment Admin</Text>
-              <Text style={styles.heroSub}>{payments.length} total transactions</Text>
+              <Text style={[styles.heroTitle, { color: colors.text }]} numberOfLines={1}>Payment Admin</Text>
+              <Text style={[styles.heroSub, { color: colors.textLight }]} numberOfLines={1}>{payments.length} total transactions</Text>
             </View>
           </View>
-          <View style={styles.revenueBadge}>
-            <Text style={styles.revLabel}>Revenue</Text>
-            <Text style={styles.revValue}>Rs. {totalRevenue.toFixed(0)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+              onPress={toggleTheme}
+              style={[styles.themePill, { backgroundColor: colors.surfaceAlt, borderColor: colors.divider }]}
+            >
+              <Ionicons name={isDark ? 'sunny' : 'moon'} size={16} color={colors.accent || colors.primary} />
+            </TouchableOpacity>
+            <View style={[styles.revenueBadge, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
+              <Text style={[styles.revLabel, { color: colors.textLight }]}>Revenue</Text>
+              <Text style={[styles.revValue, { color: colors.accent || colors.primary }]}>Rs. {totalRevenue.toFixed(0)}</Text>
+            </View>
           </View>
         </View>
       </View>
 
       <View style={styles.statsRow}>
         {['Pending', 'Completed', 'Failed'].map(s => (
-          <View key={s} style={[styles.statCard, { borderTopColor: STATUS_CONFIG[s].color }]}>
-            <Text style={styles.statLabel}>{s}</Text>
+          <View key={s} style={[styles.statCard, { backgroundColor: colors.surface, borderTopColor: STATUS_CONFIG[s].color, borderColor: colors.divider }]}>
+            <Text style={[styles.statLabel, { color: colors.textLight }]}>{s}</Text>
             <Text style={[styles.statValue, { color: STATUS_CONFIG[s].color }]}>{payments.filter(p => p.status === s).length}</Text>
           </View>
         ))}
@@ -123,16 +143,20 @@ const PaymentManagementScreen = () => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
           {['All', 'Pending', 'Completed', 'Failed'].map(item => {
             const active = filter === item;
-            const cfg = STATUS_CONFIG[item] || { color: COLORS.secondary, icon: 'card-outline' };
+            const cfg = STATUS_CONFIG[item] || { color: colors.accent || colors.primary, icon: 'card-outline' };
             return (
               <TouchableOpacity accessibilityRole="button"
                 key={item}
-                style={[styles.chip, active && { backgroundColor: cfg.color, borderColor: cfg.color }]}
+                style={[
+                  styles.chip,
+                  { backgroundColor: colors.surface, borderColor: colors.divider },
+                  active && { backgroundColor: cfg.color, borderColor: cfg.color },
+                ]}
                 onPress={() => setFilter(item)}
               >
                 <View style={styles.chipContent}>
                   <Ionicons name={cfg.icon} size={14} color={active ? COLORS.white : cfg.color} />
-                  <Text style={[styles.chipText, active && { color: COLORS.white }]}>{item}</Text>
+                  <Text style={[styles.chipText, { color: colors.textMid }, active && { color: COLORS.white }]}>{item}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -143,26 +167,26 @@ const PaymentManagementScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={filtered}
         keyExtractor={i => i._id}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAll(); }} tintColor={COLORS.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAll(); }} tintColor={colors.accent || colors.primary} />}
         renderItem={renderItem}
         ListEmptyComponent={!loading && (
           <View style={styles.empty}>
-            <Ionicons name="card-outline" size={60} color={COLORS.divider} />
-            <Text style={styles.emptyTitle}>No Payments</Text>
-            <Text style={styles.emptySub}>No transaction records found matching this filter.</Text>
+            <Ionicons name="card-outline" size={60} color={colors.divider} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Payments</Text>
+            <Text style={[styles.emptySub, { color: colors.textLight }]}>No transaction records found matching this filter.</Text>
           </View>
         )}
       />
       {loading && (
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
     </SafeAreaView>
@@ -171,7 +195,8 @@ const PaymentManagementScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  loader: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center' },
+  loader: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
+  themePill: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   
   headerSection: { marginBottom: 10 },
   hero: {
@@ -183,18 +208,18 @@ const styles = StyleSheet.create({
   },
   headerCircle: { position: 'absolute', top: -30, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)' },
   heroContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 10 },
-  headerTitles: { flex: 1 },
-  heroTitle: { fontSize: 26, fontWeight: '900', color: COLORS.text },
-  heroSub: { fontSize: 13, color: COLORS.textLight, marginTop: 2 },
-  revenueBadge: { alignItems: 'flex-end', backgroundColor: COLORS.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0, marginRight: 8 },
+  headerTitles: { flex: 1, minWidth: 0 },
+  heroTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text },
+  heroSub: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
+  revenueBadge: { alignItems: 'flex-end', backgroundColor: COLORS.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: COLORS.divider, flexShrink: 0 },
   revLabel: { fontSize: 10, color: COLORS.textLight, textTransform: 'uppercase', fontWeight: '700' },
   revValue: { fontSize: 16, fontWeight: '700', color: COLORS.primary },
 
   statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginTop: -20 },
   statCard: {
     flex: 1, backgroundColor: COLORS.surface, borderRadius: 16, padding: 12,
-    borderTopWidth: 3,
+    borderTopWidth: 3, borderWidth: 1, borderColor: COLORS.divider,
     ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 }, android: { elevation: 4 } }),
   },
   statLabel: { fontSize: 10, fontWeight: '800', color: COLORS.textLight, textTransform: 'uppercase' },

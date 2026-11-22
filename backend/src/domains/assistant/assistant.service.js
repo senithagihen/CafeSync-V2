@@ -116,7 +116,17 @@ function buildGuideReply(message, context) {
     };
     const preferredCategories = Object.entries(categoryTerms)
       .filter(([, pattern]) => pattern.test(text)).map(([category]) => category);
-    const matched = context.menu.filter((item) => !invalidBudget && (budget === null || item.price <= budget)
+    
+    // Check if customer explicitly asked about a sold-out item
+    const outOfStockMatches = context.menu.filter((item) =>
+      Number(item.stock) <= 0 && text.includes(item.name.toLowerCase())
+    );
+    if (outOfStockMatches.length) {
+      parts.push(`${outOfStockMatches.map((i) => i.name).join(', ')} is currently sold out.`);
+    }
+
+    const inStockItems = context.menu.filter((item) => Number(item.stock) > 0);
+    const matched = inStockItems.filter((item) => !invalidBudget && (budget === null || item.price <= budget)
       && (!preferredCategories.length || preferredCategories.includes(item.category))
       && (!coldIntent || /\b(cold|iced|chilled)\b/i.test(`${item.name} ${item.description}`))
       && (!hotIntent || /\b(hot|warm)\b/i.test(`${item.name} ${item.description}`)));
@@ -127,7 +137,7 @@ function buildGuideReply(message, context) {
     } else if (recommendations.length) {
       parts.push(`Here are a few available options${budget !== null ? ` within ${formatPrice(budget)}` : ''}: ${recommendations.map((item) => `${item.name} (${formatPrice(item.price)})`).join(', ')}. Tap an item below to add it to your cart, then review your order.`);
     } else {
-      parts.push(context.menu.length
+      parts.push(inStockItems.length
         ? (coldIntent || hotIntent
           ? 'I could not find an available item explicitly described as matching that serving temperature. Please check with the cafe team or explore the full menu.'
           : 'I could not find an available item matching that request. Try a different category or budget, or explore the full menu.')
@@ -209,7 +219,7 @@ async function getAssistantReply({ message, history, context, apiKey, provider =
     'You are CafeSync, a friendly cafe assistant. Keep replies concise and useful, at most 180 words.',
     'Help the customer discover current menu items, check their own recent orders, and navigate to table reservations.',
     'Use only the supplied live data for product names, prices in Sri Lankan rupees (Rs.), stock, order status, and reservations. Never invent products, promotions, opening hours, timings, availability, or policies.',
-    'The supplied menu contains only in-stock active products. Recommend at most 3 matching IDs from that menu; use an empty list when nothing matches.',
+    'The supplied menu contains active products and their current stock count. Recommend at most 3 matching IDs with stock > 0 from that menu; if an item is sold out (stock = 0), inform the customer it is unavailable and suggest an in-stock alternative; use an empty list when nothing matches.',
     'There is no verified allergen, ingredient, dietary, or nutrition database. Never assert an item is safe or suitable for an allergy or dietary requirement; tell the customer to confirm with cafe staff.',
     'You cannot place or change orders, payments, or reservations. Never claim you have performed those actions. Customers must review and confirm in the app.',
     'Navigation screens are Home for menu and cart, Orders for customer orders, Reservations for booking. Provide only relevant screens.',

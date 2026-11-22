@@ -25,6 +25,11 @@ const inventorySchema = new mongoose.Schema(
       required: [true, 'Please add stock count'],
       default: 0,
     },
+    lowStockThreshold: {
+      type: Number,
+      default: 5,
+      min: [0, 'Threshold cannot be negative'],
+    },
     image: {
       type: String,
       default: 'no-photo.jpg',

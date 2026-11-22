@@ -15,6 +15,17 @@ import HeaderBrandLogo from '../../components/common/HeaderBrandLogo';
 
 const TIMES = ['08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM'];
 
+const getLocalDayString = (offsetDays = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Colombo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+};
+
 const ReservationScreen = () => {
   const { colors } = useTheme();
   const [reservations, setReservations] = useState([]);
@@ -22,7 +33,7 @@ const ReservationScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ tableNumber: '', guests: '', date: '', time: '', specialRequests: '' });
+  const [form, setForm] = useState({ tableNumber: '', guests: '', date: getLocalDayString(0), time: '', specialRequests: '' });
   const [errors, setErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState('');
   const [showTableDropdown, setShowTableDropdown] = useState(false);
@@ -93,7 +104,7 @@ const ReservationScreen = () => {
       setTimeout(() => setSuccessMsg(''), 4000);
       fetchReservations();
     } catch (e) {
-      setErrors({ general: e.response?.data?.error || 'Booking failed. Please try again.' });
+      setErrors({ general: e.message || e.response?.data?.error || 'Booking failed. Please try again.' });
     } finally {
       setSubmitting(false);
     }
@@ -104,7 +115,7 @@ const ReservationScreen = () => {
       await reservationsAPI.cancelReservation(id);
       fetchReservations();
     } catch (e) {
-      console.log(e?.message);
+      setErrors({ general: e.message || 'Could not cancel reservation. Please try again.' });
     }
   };
 
@@ -119,13 +130,13 @@ const ReservationScreen = () => {
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
-            <HeaderBrandLogo />
+            <HeaderBrandLogo size={34} />
             <View style={styles.headerTitles}>
-              <Text style={[styles.headerSup, { color: colors.accent }]}>QUIET CORNERS</Text>
-              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
+              <Text style={[styles.headerSup, { color: colors.accent }]} numberOfLines={1}>QUIET CORNERS</Text>
+              <Text style={[styles.headerTitle, { color: colors.text, fontFamily: FONTS.serif }]} numberOfLines={1}>
                 Table Bookings
               </Text>
-              <Text style={[styles.headerSub, { color: colors.textLight }]}>
+              <Text style={[styles.headerSub, { color: colors.textLight }]} numberOfLines={1}>
                 {reservations.length} {reservations.length === 1 ? 'reservation' : 'reservations'} saved
               </Text>
             </View>
@@ -248,13 +259,46 @@ const ReservationScreen = () => {
                 </View>
               </View>
 
-              <Text style={[styles.label, { color: colors.textMid }]}>Date (YYYY-MM-DD)</Text>
+              <Text style={[styles.label, { color: colors.textMid }]}>Date</Text>
+              <View style={styles.quickDateRow}>
+                {[
+                  { label: 'Today', offset: 0 },
+                  { label: 'Tomorrow', offset: 1 },
+                  { label: 'In 2 Days', offset: 2 },
+                ].map(({ label, offset }) => {
+                  const dStr = getLocalDayString(offset);
+                  const isSelected = form.date === dStr;
+                  return (
+                    <TouchableOpacity
+                      key={label}
+                      style={[
+                        styles.quickDateChip,
+                        {
+                          backgroundColor: isSelected ? colors.primary : colors.surfaceAlt,
+                          borderColor: isSelected ? colors.primary : colors.divider,
+                        },
+                      ]}
+                      onPress={() => setField('date', dStr)}
+                      accessibilityRole="button"
+                    >
+                      <Text
+                        style={[
+                          styles.quickDateText,
+                          { color: isSelected ? colors.surface : colors.textMid, fontWeight: isSelected ? '700' : '500' },
+                        ]}
+                      >
+                        {label} ({dStr.slice(5)})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
               <TextInput
                 style={[
                   styles.input,
                   { backgroundColor: colors.surfaceAlt, borderColor: errors.date ? colors.danger : colors.divider, color: colors.text },
                 ]}
-                placeholder="e.g. 2026-11-20"
+                placeholder="YYYY-MM-DD"
                 placeholderTextColor={colors.textLight}
                 value={form.date}
                 onChangeText={(v) => setField('date', v)}
@@ -333,7 +377,7 @@ const ReservationScreen = () => {
 
           {/* Reservation List */}
           <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FONTS.serif }]}>
-            My Table Bookings
+            Your Saved Tables
           </Text>
 
           {loading ? (
@@ -364,21 +408,21 @@ const ReservationScreen = () => {
                     <View style={[styles.resIconBg, { backgroundColor: s.color + '14' }]}>
                       <Ionicons name={s.icon} size={22} color={s.color} />
                     </View>
-                    <View style={styles.resInfo}>
-                      <Text style={[styles.resTable, { color: colors.text, fontFamily: FONTS.serif }]}>
+                    <View style={[styles.resInfo, { minWidth: 0 }]}>
+                      <Text style={[styles.resTable, { color: colors.text, fontFamily: FONTS.serif }]} numberOfLines={1}>
                         Table #{r.tableNumber}
                       </Text>
-                      <Text style={[styles.resMeta, { color: colors.textMid }]}>
+                      <Text style={[styles.resMeta, { color: colors.textMid }]} numberOfLines={2}>
                         {new Date(r.date).toDateString()} · {r.time} · {r.guests} {r.guests === 1 ? 'guest' : 'guests'}
                       </Text>
                       {r.specialRequests ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
                           <Ionicons name="document-text-outline" size={13} color={colors.textLight} />
-                          <Text style={[styles.resReq, { color: colors.textLight }]}>{r.specialRequests}</Text>
+                          <Text style={[styles.resReq, { color: colors.textLight }]} numberOfLines={1}>{r.specialRequests}</Text>
                         </View>
                       ) : null}
                     </View>
-                    <View style={[styles.badge, { backgroundColor: s.color + '18' }]}>
+                    <View style={[styles.badge, { backgroundColor: s.color + '18', flexShrink: 0 }]}>
                       <Text style={[styles.badgeText, { color: s.color }]}>{r.status}</Text>
                     </View>
                   </View>
@@ -486,15 +530,16 @@ const styles = StyleSheet.create({
   },
   headerTitles: {
     flex: 1,
+    minWidth: 0,
   },
   headerSup: {
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     fontFamily: FONTS.sans,
-    marginBottom: 2,
+    marginBottom: 1,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800' },
+  headerTitle: { fontSize: 22, fontWeight: '800' },
   headerSub: { fontSize: 12, marginTop: 2, fontFamily: FONTS.sans },
   addBtn: {
     minHeight: TOUCH_TARGET.min,
@@ -576,6 +621,9 @@ const styles = StyleSheet.create({
   },
   timeText: { fontSize: 12, fontWeight: '600', fontFamily: FONTS.sans },
   timeTextActive: { fontWeight: '700' },
+  quickDateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8, marginTop: 4 },
+  quickDateChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: RADIUS.md, borderWidth: 1 },
+  quickDateText: { fontSize: 12, fontFamily: FONTS.sans },
   submitBtn: {
     borderRadius: RADIUS.base,
     minHeight: TOUCH_TARGET.buttonHeight,
@@ -608,9 +656,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  resInfo: { flex: 1 },
+  resInfo: { flex: 1, minWidth: 0 },
   resTable: { fontSize: 16, fontWeight: '700' },
-  resMeta: { fontSize: 12, marginTop: 2, fontFamily: FONTS.sans },
+  resMeta: { fontSize: 12, marginTop: 2, lineHeight: 18, fontFamily: FONTS.sans },
   resReq: { fontSize: 12, fontStyle: 'italic', flex: 1 },
   badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.full },
   badgeText: { fontSize: 11, fontWeight: '700', fontFamily: FONTS.sans },

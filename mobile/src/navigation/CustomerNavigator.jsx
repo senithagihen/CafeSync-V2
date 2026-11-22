@@ -11,6 +11,7 @@ import PaymentHistoryScreen from '../screens/customer/PaymentHistoryScreen';
 import ProfileScreen from '../screens/customer/ProfileScreen';
 import SavedCardsScreen from '../screens/customer/SavedCardsScreen';
 import AssistantScreen from '../screens/customer/AssistantScreen';
+import CartScreen from '../screens/customer/CartScreen';
 import FloatingAssistiveAssistant from '../components/common/FloatingAssistiveAssistant';
 import { useTheme } from '../context/ThemeContext';
 import { FONTS } from '../constants/typography';
@@ -140,6 +141,7 @@ export default function CustomerNavigator() {
         }}
       />
       <Stack.Screen name="SavedCards" component={SavedCardsScreen} />
+      <Stack.Screen name="Cart" component={CartScreen} />
     </Stack.Navigator>
   );
 }

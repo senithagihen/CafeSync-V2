@@ -6,6 +6,7 @@ const reservationRoutes = require('../domains/reservations/reservation.routes');
 const paymentRoutes = require('../domains/payments/payment.routes');
 const cardRoutes = require('../domains/cards/card.routes');
 const assistantRoutes = require('../domains/assistant/assistant.routes');
+const notificationRoutes = require('../domains/notifications/notification.routes');
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use('/reservations', reservationRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/cards', cardRoutes);
 router.use('/assistant', assistantRoutes);
+router.use('/notifications', notificationRoutes);
 
 module.exports = router;
