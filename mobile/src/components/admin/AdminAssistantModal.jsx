@@ -25,7 +25,7 @@ function generateLocalAdminReply(message, storeData = {}) {
   const query = (message || '').toLowerCase();
 
   // 1. Inventory / Low Stock / Out of Stock
-  if (query.includes('stock') || query.includes('inventory') || query.includes('restock') || query.includes('low') || query.includes('shortage')) {
+  if (query.includes('stock') || query.includes('inventory') || query.includes('restock') || query.includes('low') || query.includes('shortage') || query.includes('badu') || query.includes('iwarada') || query.includes('adui')) {
     const outOfStock = inventory.filter((i) => (i.stock || 0) <= 0);
     const lowStock = inventory.filter((i) => (i.stock || 0) > 0 && (i.stock || 0) <= (i.lowStockThreshold || 5));
 
@@ -51,7 +51,7 @@ function generateLocalAdminReply(message, storeData = {}) {
   }
 
   // 2. Sales / Revenue / Earnings / Today's performance
-  if (query.includes('sale') || query.includes('revenue') || query.includes('earning') || query.includes('money') || query.includes('today')) {
+  if (query.includes('sale') || query.includes('revenue') || query.includes('earning') || query.includes('money') || query.includes('today') || query.includes('salli') || query.includes('ada') || query.includes('keeyada') || query.includes('income')) {
     const now = new Date();
     const todayOrders = orders.filter((o) => new Date(o.createdAt).toDateString() === now.toDateString());
     const completedToday = todayOrders.filter((o) => o.status === 'Completed' || o.paymentStatus === 'Paid');
@@ -75,7 +75,7 @@ function generateLocalAdminReply(message, storeData = {}) {
   }
 
   // 3. Pending Orders / Queue / Attention
-  if (query.includes('pending') || query.includes('order') || query.includes('queue') || query.includes('attention') || query.includes('kitchen') || query.includes('preparing')) {
+  if (query.includes('pending') || query.includes('order') || query.includes('queue') || query.includes('attention') || query.includes('kitchen') || query.includes('preparing') || query.includes('kama') || query.includes('kaama')) {
     const pending = orders.filter((o) => o.status === 'Pending');
     const preparing = orders.filter((o) => o.status === 'Preparing');
     const ready = orders.filter((o) => o.status === 'Ready');
@@ -100,7 +100,7 @@ function generateLocalAdminReply(message, storeData = {}) {
   }
 
   // 4. Reservations / Bookings / Tables
-  if (query.includes('reservation') || query.includes('table') || query.includes('booking') || query.includes('guest')) {
+  if (query.includes('reservation') || query.includes('table') || query.includes('booking') || query.includes('guest') || query.includes('meza') || query.includes('mezaya')) {
     const now = new Date();
     const todayRes = reservations.filter((r) => new Date(r.date).toDateString() === now.toDateString());
     const confirmed = todayRes.filter((r) => r.status === 'Confirmed');
@@ -125,7 +125,7 @@ function generateLocalAdminReply(message, storeData = {}) {
   }
 
   // 5. Top Sellers / Best Selling / Slow Moving
-  if (query.includes('top') || query.includes('best') || query.includes('popular') || query.includes('selling') || query.includes('slow') || query.includes('poor')) {
+  if (query.includes('top') || query.includes('best') || query.includes('popular') || query.includes('selling') || query.includes('slow') || query.includes('poor') || query.includes('kamathima') || query.includes('vadiyenma')) {
     const salesMap = {};
     for (const o of orders) {
       if (o.status !== 'Cancelled') {

@@ -67,13 +67,13 @@ function buildGuideReply(message, context) {
   const recommendations = [];
   const actions = [];
   const parts = [];
-  const orderIntent = /\b(order|orders|tracking|track|delivery|ready|status)\b/.test(text);
-  const bookingIntent = /\b(reservation|reservations|reserve|book|booking|table|tables)\b/.test(text);
-  const dietaryIntent = /\b(allerg\w*|vegan|vegetarian|gluten|dairy|lactose|nut|nuts|halal|diet\w*|sugar|calorie\w*|nutrition\w*|keto|protein|coeliac|celiac)\b/.test(text);
-  const caffeineIntent = /\b(decaf\w*|de-caf\w*|caffeine|caffeinated|uncaffeinated)\b/.test(text);
-  const coldIntent = /\b(cold|iced|chilled)\b/.test(text);
-  const hotIntent = /\b(hot|warm)\b/.test(text);
-  const menuIntent = /\b(menu|recommend\w*|suggest\w*|coffee|tea|drink\w*|dessert\w*|snack\w*|hungry|eat|food|budget|cheap\w*|under|below|less|sweet|caffeine|decaf\w*|cold|iced|chilled|hot|warm)\b/.test(text);
+  const orderIntent = /\b(order|orders|tracking|track|delivery|ready|status|mage|magae|badu)\b/i.test(text);
+  const bookingIntent = /\b(reservation|reservations|reserve|book|booking|table|tables|meza|mezaya|seat)\b/i.test(text);
+  const dietaryIntent = /\b(allerg\w*|vegan|vegetarian|gluten|dairy|lactose|nut|nuts|halal|diet\w*|sugar|calorie\w*|nutrition\w*|keto|protein|coeliac|celiac)\b/i.test(text);
+  const caffeineIntent = /\b(decaf\w*|de-caf\w*|caffeine|caffeinated|uncaffeinated)\b/i.test(text);
+  const coldIntent = /\b(cold|iced|chilled)\b/i.test(text);
+  const hotIntent = /\b(hot|warm)\b/i.test(text);
+  const menuIntent = /\b(menu|recommend\w*|suggest\w*|coffee|tea|drink\w*|dessert\w*|snack\w*|hungry|eat|food|budget|cheap\w*|under|below|less|sweet|caffeine|decaf\w*|cold|iced|chilled|hot|warm|kama|kaama|bima|kanna|bonna|keeyada|mila|ganan)\b/i.test(text);
 
   if (orderIntent) {
     const latest = context.orders[0];
@@ -108,11 +108,11 @@ function buildGuideReply(message, context) {
   if (menuIntent && !dietaryIntent && !caffeineIntent) {
     const { budget, invalid: invalidBudget } = parseBudget(text);
     const categoryTerms = {
-      Coffee: /\b(coffee|espresso|latte|cappuccino|caffeine)\b/,
-      Tea: /\btea\b/,
-      Desserts: /\b(dessert\w*|sweet|cake)\b/,
-      Snacks: /\b(snack\w*|hungry|food|eat)\b/,
-      Beverages: /\b(juice|smoothie|beverage\w*)\b/,
+      Coffee: /\b(coffee|espresso|latte|cappuccino|caffeine|kopi)\b/i,
+      Tea: /\b(tea|the)\b/i,
+      Desserts: /\b(dessert\w*|sweet|cake|pani)\b/i,
+      Snacks: /\b(snack\w*|hungry|food|eat|kama|kaama|kanna)\b/i,
+      Beverages: /\b(juice|smoothie|beverage\w*|bima|bonna)\b/i,
     };
     const preferredCategories = Object.entries(categoryTerms)
       .filter(([, pattern]) => pattern.test(text)).map(([category]) => category);
@@ -217,6 +217,7 @@ async function getAssistantReply({ message, history, context, apiKey, provider =
 
   const instructions = [
     'You are CafeSync, a friendly cafe assistant. Keep replies concise and useful, at most 180 words.',
+    'Always respond naturally in the same language or dialect the customer uses (e.g. English, Sinhala, Singlish, or Tamil). Always keep item names, prices in Sri Lankan rupees (Rs.), and navigation screens in their recognizable standard form.',
     'Help the customer discover current menu items, check their own recent orders, and navigate to table reservations.',
     'Use only the supplied live data for product names, prices in Sri Lankan rupees (Rs.), stock, order status, and reservations. Never invent products, promotions, opening hours, timings, availability, or policies.',
     'The supplied menu contains active products and their current stock count. Recommend at most 3 matching IDs with stock > 0 from that menu; if an item is sold out (stock = 0), inform the customer it is unavailable and suggest an in-stock alternative; use an empty list when nothing matches.',

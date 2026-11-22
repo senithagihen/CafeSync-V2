@@ -151,11 +151,11 @@ function buildAdminGuideReply(message, context) {
   const parts = [];
   const suggestions = [];
 
-  const asksSales = /\b(sales?|revenue|income|earning|total|money)\b/.test(text);
-  const asksOrders = /\b(orders?|pending|preparing|urgent|pipeline)\b/.test(text);
-  const asksStock = /\b(stock|inventory|low|out\s*of\s*stock|restock|item)\b/.test(text);
-  const asksBookings = /\b(reservation|reservations|booking|bookings|table|tables|guest)\b/.test(text);
-  const asksTop = /\b(top|best|popular|selling|favorite|performing|slow)\b/.test(text);
+  const asksSales = /\b(sales?|revenue|income|earning|total|money|salli|ganu|ada|labeta|keeyada)\b/i.test(text);
+  const asksOrders = /\b(orders?|pending|preparing|urgent|pipeline|kama|kitchen)\b/i.test(text);
+  const asksStock = /\b(stock|inventory|low|out\s*of\s*stock|restock|item|badu|iwarada|adui)\b/i.test(text);
+  const asksBookings = /\b(reservation|reservations|booking|bookings|table|tables|guest|meza|mezawal)\b/i.test(text);
+  const asksTop = /\b(top|best|popular|selling|favorite|performing|slow|kamathima|vadiyenma|aduwenma)\b/i.test(text);
 
   if (asksSales) {
     parts.push(
@@ -286,6 +286,7 @@ async function getAdminAssistantReply({
 
   const instructions = [
     'You are the CafeSync Admin Operations Assistant. You assist cafe managers and staff with real-time operational analysis, sales insights, inventory health, order queues, and reservations.',
+    'Always respond in the same language or dialect the admin uses (English, Sinhala, Singlish, or Tamil) while keeping figures (Rs., counts) strictly accurate.',
     'Use ONLY the authorized operational data provided below. Never invent numbers, revenue figures, order counts, or product names.',
     'Clearly distinguish between CONFIRMED FACTS (exact numbers directly from the system) and OPERATIONAL SUGGESTIONS / RECOMMENDATIONS.',
     'Keep replies concise, professional, structured, and easy to read on mobile or desktop (under 250 words).',
