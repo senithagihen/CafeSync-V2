@@ -1,9 +1,10 @@
 import { orderReference, itemCount } from '../../utils/orderDisplay';
-import React, { useEffect, useState, useRef, useContext } from 'react';
+import React, { useEffect, useState, useRef, useContext, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
   TouchableOpacity, ActivityIndicator, Platform, Animated, RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -63,14 +64,6 @@ const DashboardScreen = () => {
     Cancelled: colors.danger,
   };
 
-  useEffect(() => {
-    fetchAll();
-    Animated.parallel([
-      Animated.spring(headerAnim, { toValue: 0, friction: 8, useNativeDriver: true }),
-      Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-    ]).start();
-  }, [headerAnim, headerOpacity]);
-
   const fetchUnreadCount = async () => {
     try {
       const res = await notificationAPI.unreadCount();
@@ -78,7 +71,8 @@ const DashboardScreen = () => {
     } catch { }
   };
 
-  const fetchAll = async () => {
+  const fetchAll = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [o, i, r, p, n] = await Promise.all([
         adminOrdersAPI.getAll(),
@@ -88,19 +82,38 @@ const DashboardScreen = () => {
         notificationAPI.unreadCount().catch(() => ({ data: { unreadCount: 0 } })),
       ]);
       setData({
-        orders: o.data.data || [],
-        inventory: i.data.data || [],
-        reservations: r.data.data || [],
-        payments: p.data.data || [],
+        orders: o.data?.data || [],
+        inventory: i.data?.data || [],
+        reservations: r.data?.data || [],
+        payments: p.data?.data || [],
       });
       setUnreadAlertsCount(n.data?.unreadCount || 0);
     } catch (e) {
       console.log(e?.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
       setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    fetchAll();
+    Animated.parallel([
+      Animated.spring(headerAnim, { toValue: 0, friction: 8, useNativeDriver: true }),
+      Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, [headerAnim, headerOpacity]);
+
+  // Real-time Auto-Polling Heartbeat: Silently syncs pending orders and stock alerts every 10 seconds while focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchAll(true);
+      const heartbeatTimer = setInterval(() => {
+        fetchAll(true);
+      }, 10000);
+      return () => clearInterval(heartbeatTimer);
+    }, [])
+  );
 
   const pendingOrders = data.orders.filter((o) => o.status === 'Pending').length;
   const unpaidOrders = data.orders.filter((o) => o.paymentStatus === 'Pending' && o.status !== 'Cancelled').length;
