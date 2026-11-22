@@ -5,7 +5,7 @@
 [![React Native](https://img.shields.io/badge/React_Native-Expo_52-blue.svg)](https://expo.dev/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-forestgreen.svg)](https://www.mongodb.com/)
 [![AI Provider](https://img.shields.io/badge/AI-Google_Gemini_%7C_OpenAI-orange.svg)](https://aistudio.google.com/)
-[![Tests](https://img.shields.io/badge/Tests-73%2F73_Passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-74%2F74_Passing-brightgreen.svg)]()
 
 **CafeSync** is a modern, full-stack smart cafe management system built with **Expo / React Native**, **Node.js / Express**, and **MongoDB**. It combines a warm, responsive customer cafe experience with a comprehensive admin operations portal, powered by **dual Google Gemini AI assistants**, **automated inventory management**, and **multilingual decision support**.
 
