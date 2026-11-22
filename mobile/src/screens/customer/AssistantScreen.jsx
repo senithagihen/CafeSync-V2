@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
-  StyleSheet, Text, TextInput, TouchableOpacity, View,
+  StyleSheet, Text, TextInput, TouchableOpacity, View, Keyboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -188,6 +188,14 @@ export default function AssistantScreen({ navigation, route }) {
 
   const initialHandledRef = useRef(false);
   useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setTimeout(scrollToEnd, 150)
+    );
+    return () => showSub.remove();
+  }, []);
+
+  useEffect(() => {
     const initialMsg = route?.params?.initialMessage;
     if (initialMsg && !initialHandledRef.current) {
       initialHandledRef.current = true;
@@ -225,8 +233,12 @@ export default function AssistantScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.divider }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -457,6 +469,7 @@ export default function AssistantScreen({ navigation, route }) {
                 placeholderTextColor={colors.textLight}
                 value={draft}
                 onChangeText={setDraft}
+                onFocus={() => setTimeout(scrollToEnd, 200)}
                 multiline
                 maxLength={MAX_MESSAGE_LENGTH}
                 accessibilityLabel="Message your cafe companion"
@@ -660,7 +673,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13, lineHeight: 19, fontFamily: FONTS.sans },
   retryButton: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: TOUCH_TARGET.min, alignSelf: 'flex-start' },
   retryText: { fontSize: 13, fontWeight: '700' },
-  composerArea: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10, borderTopWidth: 1 },
+  composerArea: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 22 : 12, borderTopWidth: 1 },
   guideNote: { fontSize: 11, lineHeight: 16, marginBottom: 8, fontFamily: FONTS.sans },
   composer: {
     flexDirection: 'row',

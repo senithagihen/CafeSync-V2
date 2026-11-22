@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { adminAssistantAPI, adminOrdersAPI, adminInventoryAPI, adminReservationsAPI } from '../../api';
@@ -194,6 +194,14 @@ export default function AdminAssistantModal({ visible, onClose, dashboardData })
   }, [dashboardData]);
 
   useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)
+    );
+    return () => showSub.remove();
+  }, []);
+
+  useEffect(() => {
     if (visible) {
       // Refresh local store data in background if needed
       if (!localDataRef.current?.orders?.length) {
@@ -255,11 +263,18 @@ export default function AdminAssistantModal({ visible, onClose, dashboardData })
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}
-      >
-        <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+          accessibilityLabel="Dismiss assistant modal"
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+          style={[styles.container, { backgroundColor: colors.surface }]}
+        >
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.divider }]}>
             <View style={styles.headerLeft}>
@@ -298,6 +313,7 @@ export default function AdminAssistantModal({ visible, onClose, dashboardData })
             ref={scrollRef}
             style={styles.messagesList}
             contentContainerStyle={styles.messagesContent}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
             {messages.map((m) => {
@@ -359,6 +375,7 @@ export default function AdminAssistantModal({ visible, onClose, dashboardData })
               onChangeText={setInput}
               onSubmitEditing={() => sendMessage()}
               returnKeyType="send"
+              onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200)}
             />
             <TouchableOpacity
               style={[styles.sendBtn, { backgroundColor: input.trim() ? (colors.accent || colors.primary) : colors.surfaceAlt }]}
@@ -368,15 +385,22 @@ export default function AdminAssistantModal({ visible, onClose, dashboardData })
               <Ionicons name="arrow-up" size={18} color={input.trim() ? '#FFFFFF' : colors.textLight} />
             </TouchableOpacity>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  container: { height: '85%', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  backdrop: { ...StyleSheet.absoluteFillObject },
+  container: {
+    height: '85%',
+    maxHeight: '92%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   botBadge: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
@@ -398,7 +422,14 @@ const styles = StyleSheet.create({
   suggestionsContainer: { marginTop: 10, gap: 6 },
   suggestionBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 10, borderWidth: 1 },
   suggestionText: { fontSize: 11, flex: 1, lineHeight: 16 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 8, borderTopWidth: 1 },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    gap: 8,
+    borderTopWidth: 1,
+  },
   input: { flex: 1, height: 44, borderRadius: 22, paddingHorizontal: 16, fontSize: 14, borderWidth: 1 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
 });
