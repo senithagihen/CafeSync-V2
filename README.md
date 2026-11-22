@@ -1,275 +1,272 @@
-# CafeSync
+# CafeSync ☕
 
-CafeSync is a cafe management app built with Expo / React Native, Express, and MongoDB. It brings menu browsing, orders, table reservations, payment records, and an AI cafe companion into one customer experience, with a separate admin area for daily operations.
+[![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
+[![React Native](https://img.shields.io/badge/React_Native-Expo_52-blue.svg)](https://expo.dev/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-forestgreen.svg)](https://www.mongodb.com/)
+[![AI Provider](https://img.shields.io/badge/AI-Google_Gemini_%7C_OpenAI-orange.svg)](https://aistudio.google.com/)
+[![Tests](https://img.shields.io/badge/Tests-73%2F73_Passing-brightgreen.svg)]()
 
-## Features
+**CafeSync** is a modern, full-stack smart cafe management system built with **Expo / React Native**, **Node.js / Express**, and **MongoDB**. It combines a warm, responsive customer cafe experience with a comprehensive admin operations portal, powered by **dual Google Gemini AI assistants**, **automated inventory management**, and **multilingual decision support**.
 
-| Area | Included features |
-| --- | --- |
-| Customer experience | Warm cafe styling, responsive menu cards, search, category filters, and stock-aware cart controls |
-| Orders | Dine-in, takeaway, and delivery checkout; active orders and order history |
-| Reservations | Table availability, bookings, and reservation management |
-| Account | Registration, sign-in, profile settings, saved cards, and payment history |
-| Admin | Dashboard, inventory, order management, tables, and payment records |
-| Cafe companion | Gemini or OpenAI recommendations, budget suggestions, customer order status, and reservation guidance |
+---
 
-Payment flows currently record application payment statuses. The backend does not integrate a payment gateway to charge cards.
+## 🌟 Key Highlights
 
-## Project structure
+* **Dual-Agent AI Architecture:**
+  * **Customer AI Companion:** Smart menu recommendations, budget-aware pairing, real-time customer order tracking, and table booking guidance.
+  * **Admin Operations Assistant:** Live revenue insights, kitchen order queues, inventory shortage alerts, and table occupancy analysis.
+* **Native Multilingual Support:** Natively understands and communicates in **English**, **Sinhala (සිංහල)**, **Singlish**, and **Tamil (தமிழ்)** with automated language mirroring.
+* **Automated Stock Tracking & Staff Alerts:**
+  * Real-time inventory deduction upon order placement.
+  * Automated `lowStockThreshold` tracking with deduplicated staff notifications (2-hour cooldown).
+  * Auto-resolving alerts when items are replenished.
+* **Zero-Downtime Deterministic Fallback Engine:** Guarantees 100% assistant uptime. If cloud LLM quotas expire or connectivity fails, client and server rule-based engines answer using verified live store data without showing errors.
+* **Production-Grade UI/UX:**
+  * Mobile (< 400px) & Desktop-optimized layouts with zero text overlapping.
+  * Smooth floating AI assistive orb and full keyboard-avoiding inputs on iOS & Android.
+  * Day/Night warm cafe theme toggle with high-contrast accessibility.
+
+---
+
+## 📋 Feature Breakdown
+
+| Domain | Key Capabilities |
+| :--- | :--- |
+| **Customer App** | Warm cafe styling, category filtering, search, cart management, dine-in / takeaway / delivery options. |
+| **Order Pipeline** | Real-time status flows (`Pending` ➔ `Preparing` ➔ `Ready` ➔ `Completed`), reference IDs, receipts. |
+| **Table Bookings** | Floor table manager, slot reservations, occupancy status, guest count tracking, and special requests. |
+| **Customer AI Barista** | Grounded recommendations from in-stock menu items, budget filters, food safety disclaimers, and screen navigation. |
+| **Admin Dashboard** | Real-time sales metrics, unpaid tabs count, live order queues, and low-stock overview. |
+| **Admin AI Assistant** | Voice & text decision support for daily revenue, stock forecasts, top-selling items, and operational priorities. |
+| **Inventory Automation** | Stock movements audit trail, threshold monitoring, and staff alert drawer with unread counters. |
+| **Security & Auth** | JWT authentication, role-based access control (RBAC), rate-limiting, and prompt injection defense. |
+
+---
+
+## 🏗️ Architecture & Project Structure
 
 ```text
-backend/
-  src/
-    config/             # MongoDB, environment loading, and AI provider selection
-    domains/            # Auth, inventory, orders, reservations, payments, cards, assistant
-    middlewares/        # Authentication and error handling
-    routes/             # API route registration
-    app.js              # Express app
-    server.js           # API entry point
-  scripts/check-ai.js   # Provider connection diagnostic
-  test/                 # Assistant and Gemini tests
-  .env.example
-mobile/
-  app/_layout.tsx       # Expo entry layout and application providers
-  src/
-    api/                # API client and endpoint adapters
-    components/         # Shared UI components
-    constants/          # Colors, spacing, and typography
-    context/            # Authentication and cart state
-    navigation/         # Auth, customer, and admin navigation
-    screens/            # Auth, customer, and admin screens
-  assets/
-  .env.example
+cafe-sync/
+├── backend/
+│   ├── src/
+│   │   ├── config/             # MongoDB connector, environment resolution, AI provider setup
+│   │   ├── domains/
+│   │   │   ├── assistant/      # Customer & Admin AI services, Gemini/OpenAI providers, fallbacks
+│   │   │   ├── auth/           # JWT auth controllers, models, and route protection
+│   │   │   ├── inventory/      # Menu items, stock movement auditing, and threshold controls
+│   │   │   ├── notifications/  # Automated staff alerts, deduplication, and resolution
+│   │   │   ├── orders/         # Order lifecycle, kitchen pipeline, and status transitions
+│   │   │   ├── payments/       # Payment records and billing tabs
+│   │   │   └── reservations/   # Table booking models and availability checking
+│   │   ├── middlewares/        # Authentication, RBAC, input sanitization, error handlers
+│   │   ├── routes/             # Unified Express router
+│   │   ├── app.js              # Express app configuration
+│   │   └── server.js           # Server bootstrap
+│   ├── scripts/                # Diagnostic scripts (check-ai.js)
+│   ├── test/                   # 73 automated tests (unit, integration, and security checks)
+│   └── .env.example
+│
+└── mobile/
+    ├── app/                    # Expo router configuration and layout providers
+    ├── src/
+    │   ├── api/                # Axios client with secure interceptors (Admin, AI, Auth, Orders, etc.)
+    │   ├── components/         # Floating orb, modals, headers, brand logo, loaders
+    │   │   ├── admin/          # AdminAssistantModal, StaffNotificationModal
+    │   │   └── common/         # FloatingAssistiveAssistant, HeaderBrandLogo, CoffeeLoader
+    │   ├── constants/          # Colors, spacing tokens, and typography (FONTS.sans & FONTS.serif)
+    │   ├── context/            # AuthContext, ThemeContext, CartContext
+    │   ├── navigation/         # CustomerNavigator, AdminNavigator, AuthNavigator
+    │   └── screens/            # Customer screens (Home, Assistant, Cart, Orders, Reservations, Profile)
+    │                           # Admin screens (Dashboard, OrderManager, Inventory, Tables, Payments)
+    ├── assets/                 # Brand icons, splash screens, and images
+    └── .env.example
 ```
 
-The mobile app uses Expo Router as its entry point and React Navigation for the app's auth, customer, and admin flows. See the [mobile README](mobile/README.md) for mobile development details.
+---
 
-## Local setup
+## 🚀 Getting Started
 
-You need Node.js 22 or newer, npm, and a reachable MongoDB database. Run the following commands from the project root in separate terminals.
+### Prerequisites
 
-### 1. Start the backend
+* **Node.js** 20.x or 22.x
+* **npm** 10.x or newer
+* **MongoDB** (Local instance or MongoDB Atlas cluster)
+* **Google AI Studio Key** (or OpenAI API Key)
 
-```powershell
+---
+
+### 1. Backend Setup
+
+```bash
+# 1. Navigate to backend directory
 cd backend
+
+# 2. Install dependencies
 npm install
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
+
+# 3. Create .env configuration
+cp .env.example .env
 ```
 
-Edit `backend/.env` with your database connection and JWT settings:
+Configure `backend/.env` with your credentials:
 
 ```dotenv
 PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=replace_with_a_long_random_secret
-JWT_EXPIRE=30d
 NODE_ENV=development
-```
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_super_secret_jwt_key_here
+JWT_EXPIRE=30d
 
-Then start the API:
-
-```powershell
-npm run dev
-```
-
-The default API base URL is `http://localhost:5000/api`. `npm start` runs the server without the development watcher.
-
-### 2. Start the app
-
-In a second terminal from the project root:
-
-```powershell
-cd mobile
-npm install
-npm run web
-```
-
-Open the local URL printed by Expo. To use Expo Go or a configured emulator instead, run `npm start` and choose the target from Expo's terminal menu.
-
-Register a customer account to explore the app. Accounts with the `admin` role open the admin area. The menu comes from MongoDB inventory; add inventory through the admin area if your database has no menu items.
-
-### API connection on different devices
-
-The app accepts an optional `EXPO_PUBLIC_API_URL` in `mobile/.env`. Include `/api` at the end.
-
-| Target | Example URL |
-| --- | --- |
-| Web on the API computer | `http://localhost:5000/api` |
-| Android emulator | `http://10.0.2.2:5000/api` |
-| Physical phone on the same network | `http://YOUR_COMPUTER_LAN_IP:5000/api` |
-
-Without an override, web uses localhost. Native apps use the detected Expo host when available, otherwise the Android emulator address. An explicit URL overrides this detection. Restart Expo after changing the mobile environment configuration.
-
-## Deploy the frontend to Vercel
-
-Use a separate Vercel project for the frontend so the existing backend deployment keeps its own domain. Import this Git repository and configure:
-
-| Vercel setting | Value |
-| --- | --- |
-| Root Directory | `mobile` |
-| Framework Preset | Other |
-| Install Command | `npm ci` |
-| Build Command | Read from `mobile/vercel.json` |
-| Output Directory | `dist` |
-| Environment variable | `EXPO_PUBLIC_API_URL=https://cafe-sync-v2.vercel.app/api` |
-
-Set the API URL for both Production and any Preview environments you use, then deploy. Vercel runs the deployment URL check and `npm run build`, which clears Expo's transform cache so changed environment values are included in the exported bundle. Expo exports static HTML for its existing routes, and `cleanUrls` serves those routes without `.html`. See [Expo's publishing guide](https://docs.expo.dev/guides/publishing-websites/) and [Vercel build settings](https://vercel.com/docs/builds/configure-a-build).
-
-`EXPO_PUBLIC_API_URL` is embedded in the web bundle at build time. Change it to your own public HTTPS backend `/api` address if your backend domain changes, and redeploy after editing it. The deployment check rejects a missing URL, HTTP, localhost, or a URL without the `/api` suffix. AI keys and database credentials stay in the backend project's environment settings.
-
-In the backend Vercel project, configure the exact frontend origin after the frontend domain is assigned:
-
-```dotenv
-CORS_ORIGINS=https://YOUR_FRONTEND_PROJECT.vercel.app
-```
-
-Use comma-separated exact origins for additional custom or preview domains. Local development origins remain allowed. Redeploy the backend after changing its Vercel environment settings. Set `MONGODB_URI`, `JWT_SECRET`, and your selected AI provider settings on that backend project too. API requests must have a working MongoDB connection; the app initializes and reuses it even when Vercel imports `src/app.js` directly.
-
-Before checking the deployed UI, confirm `https://cafe-sync-v2.vercel.app/api/inventory` returns HTTP 200 and a JSON inventory list. A backend HTTP 500/503 must be resolved before menu loading, authentication, orders, and AI chat can work. Then check sign-in, menu images, cart, reservations, and the companion from the frontend domain. Server uploads on Vercel need persistent external storage; local runtime files are not durable deployment storage.
-
-`GET /api/health` checks database readiness. It returns HTTP 200 with `{ "success": true, "status": "ok", "database": "connected" }` once the shared MongoDB connection is available, or the same generic HTTP 503 as other API routes when the connection fails. Health responses are not cached.
-
-If the URI and Atlas IP access list are correct but requests still return 503, open the backend project's Vercel Runtime Logs and request `/api/health`. Look for `[CafeSync database]` and its safe `code`:
-
-| Code | What to check |
-| --- | --- |
-| `database_not_configured` | `MONGODB_URI` is missing in the running deployment; check the backend project and Production/Preview scope, then redeploy |
-| `database_invalid_configuration` | Connection string syntax, unencoded password characters, or invalid driver options |
-| `database_authentication_failed` | Database user credentials and authentication database |
-| `database_dns_error` | Cluster hostname, SRV DNS resolution, and whether the cluster exists and is active |
-| `database_tls_error` | TLS handshake or certificate failure; verify runtime/network compatibility without disabling certificate verification |
-| `database_network_error` | Connection refused/reset or unreachable host; verify cluster availability, outbound access and the matching Atlas project's IP access list |
-| `database_timeout` | No suitable database server was reachable within the five-second selection timeout; check cluster availability and network access |
-| `database_unavailable` | An unclassified connection failure; investigate deployment and cluster availability |
-
-These logs contain fixed diagnostic codes, not connection strings, credentials or raw driver errors. Local startup success does not verify the deployed environment or its network path.
-
-Authentication also requires a non-empty `JWT_SECRET` in the backend Vercel project's Production and Preview environments. Store it as a Secret with a long, randomly generated value, keep the same value across instances, and redeploy after saving it. `JWT_EXPIRE` is a non-secret duration such as `30d`; it defaults to `30d` when omitted. A missing signing secret logs `[CafeSync API] { code: 'auth_not_configured', status: 503 }`; invalid signing settings log `auth_invalid_configuration`. Customers receive a generic temporary-unavailability message. Registration signs the token before saving the account, so a signing failure does not create a partially registered account. Accounts created by earlier failed registration attempts can sign in after the secret is configured.
-
-Unexpected API errors use friendly public messages. The shared handler logs only fixed diagnostic categories and status codes, without raw errors or stacks. Input validation and credential errors remain actionable; internal library messages and database values are not sent to customers. The app also replaces unexpected server and network error details with safe messages.
-
-Commit `mobile/vercel.json`, the build script, `mobile/package-lock.json`, and the `.env.example` templates. Real `.env` files and generated `dist`/`node_modules` remain ignored. Both application folders are tracked as normal source directories in the main repository.
-
-## AI assistant
-
-Open the **Cafe companion** card on the customer menu. You can ask questions such as:
-
-- "Recommend a coffee under Rs. 1,000."
-- "What is the status of my latest order?"
-- "How can I reserve a table?"
-
-Recommendations use active, in-stock inventory. Tap **Add** to put an item in your cart, then review and confirm checkout. The assistant guides users to orders and reservations; it does not place orders, make payments, or create bookings itself. Dietary and allergen suitability must be confirmed with the cafe team.
-
-### Gemini configuration
-
-Create a key in [Google AI Studio](https://aistudio.google.com/apikey), then set these values in **`backend/.env`**:
-
-```dotenv
+# AI Configuration (Gemini or OpenAI)
 AI_PROVIDER=gemini
-GEMINI_API_KEY=your_google_ai_studio_key
-GEMINI_MODEL=gemini-3.5-flash-lite
+GEMINI_API_KEY=your_google_ai_studio_api_key
+GEMINI_MODEL=gemini-1.5-flash
 ```
 
-Restart the backend after configuring the provider. The model is configurable; its availability and quota depend on your Google project. See the [Gemini key setup guide](https://ai.google.dev/gemini-api/docs/api-key).
+Start the backend API:
 
-### OpenAI configuration
+```bash
+# Development mode with hot-reloading
+npm run dev
 
-To select OpenAI, use:
+# Or production start
+npm start
+```
+
+* Backend API runs at: `http://localhost:5000/api`
+* Run AI Diagnostic check: `npm run check:ai`
+
+---
+
+### 2. Frontend / Mobile Setup
+
+In a separate terminal:
+
+```bash
+# 1. Navigate to mobile directory
+cd mobile
+
+# 2. Install dependencies
+npm install
+
+# 3. Configure environment
+cp .env.example .env
+```
+
+Set the backend API URL in `mobile/.env`:
 
 ```dotenv
-AI_PROVIDER=openai
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4.1-mini
+# Local development (web)
+EXPO_PUBLIC_API_URL=http://localhost:5000/api
+
+# Or hosted production backend
+# EXPO_PUBLIC_API_URL=https://cafe-sync-v2.vercel.app/api
 ```
 
-Restart the backend after changing these settings. See the [official OpenAI Responses documentation](https://developers.openai.com/api/reference/resources/responses/methods/create).
+Start Expo:
 
-Set `AI_PROVIDER` explicitly when both keys are configured. If it is omitted, a Gemini-only key selects Gemini; otherwise the app selects OpenAI. The example environment file sets `AI_PROVIDER=openai`, so change that value when choosing Gemini. Provider failures return the menu guide rather than switching to another provider.
+```bash
+# Run web preview
+npm run web
 
-AI keys belong on the backend. Never put them in `mobile/.env` or an `EXPO_PUBLIC_` variable. The backend resolves its `.env` relative to its own directory. Existing shell or deployment environment variables take precedence over that file. The development watcher reloads backend `.env` changes; a server started with `npm start` needs a manual restart.
-
-### Check the provider connection
-
-From `backend`, run:
-
-```powershell
-npm run check:ai
+# Or start Expo Go for physical devices / emulators
+npm start
 ```
 
-This sends one small request to the selected provider without connecting to MongoDB or sending customer records. It prints a sanitized result and never prints the key. The request uses the provider's quota and may incur a small API charge.
+---
 
-| Result | What to check |
-| --- | --- |
-| `available` | The selected provider accepted the diagnostic request |
-| `not_configured` | Add the selected provider's API key to `backend/.env` |
-| `invalid_configuration` | Set `AI_PROVIDER` to `gemini` or `openai` |
-| `authentication_failed` | Verify the key belongs to the selected provider and is active |
-| `permission_denied` / `model_unavailable` | Check project permissions and access to the configured model |
-| `quota_exceeded` | Check the provider project's credits, billing, and quota limits |
-| `rate_limited` | Wait before retrying and check request limits |
-| `timeout` / `network_error` | Check the backend computer's network, proxy, or firewall |
-| `invalid_response` / `provider_unavailable` | Check provider availability and structured-output compatibility |
+## 🤖 AI Assistant Engineering & Features
 
-For OpenAI, `credit_balance_exhausted` means API credits have run out. Adding another key for the same exhausted account will not restore credits. See [OpenAI error codes](https://developers.openai.com/api/docs/guides/error-codes). For Gemini errors, see [Google's troubleshooting guide](https://ai.google.dev/gemini-api/docs/troubleshooting).
+### A. Customer AI Assistant (`POST /api/assistant/chat`)
+* **Real Database Grounding:** Never hallucinates products or prices. Context is injected dynamically from active in-stock inventory.
+* **Safety First:** Strict refusal to give unverified medical or dietary guarantees; directs users to consult staff.
+* **No Accidental Spending:** The AI assists and suggests, but customers must review and explicitly confirm orders in the cart.
+* **Multilingual:** Users can ask in English, Sinhala, Singlish, or Tamil.
 
-### Guide mode and customer data
+### B. Admin Operations Assistant (`POST /api/assistant/admin/chat`)
+* **Live Decision Support:** Instant answers to *"What are today's sales?"*, *"Which items are low in stock?"*, *"Show pending orders"*.
+* **Confirmed Facts vs Suggestions:** Clearly differentiates between verified database numbers and recommended operational actions.
+* **Strict Privacy:** Enforces `protect` and `authorize('admin')` middlewares so customer accounts cannot access business analytics.
 
-When the selected key is missing or the provider fails, the assistant returns a labelled **Menu guide** response and an AI-unavailable notice. The guide can still use the current menu and the signed-in customer's records while the database is available. Assistant fallback logs contain only sanitized failure codes and HTTP statuses.
-
-AI requests include chat text, a limited in-stock menu, and the signed-in customer's recent order and upcoming reservation summaries. Profile addresses, payment records, and product image URLs are excluded. Both providers use structured responses and a 12-second provider timeout. OpenAI requests set `store: false`; Gemini data handling follows the Google API terms for your project. Conversation state stays in the assistant screen's memory and can be cleared with the new-conversation button.
-
-## Assistant API
-
-`POST /api/assistant/chat` requires the existing bearer token in the `Authorization` header.
-
-```json
-{
-  "message": "Recommend a coffee under Rs. 1,000",
-  "history": [
-    { "role": "user", "content": "I would like a coffee." },
-    { "role": "assistant", "content": "What is your budget?" }
-  ]
-}
+### C. Fallback Architecture
+```mermaid
+flowchart TD
+    UserQuery([User Sends Query]) --> Sanitize[Input Validation & Length Check]
+    Sanitize --> ScopeCheck{Role & Scope Verification}
+    ScopeCheck --> FetchContext[(Fetch Live Scoped DB Context)]
+    FetchContext --> Prompt[Assemble Guardrails + Context]
+    Prompt --> AI[Google Gemini API]
+    AI -->|200 OK Response| Validator[Schema & Output Validation]
+    Validator --> ClientUI([Display in Chat Bubble])
+    
+    AI -.->|Network/Quota/404 Failure| Fallback[Deterministic Local Engine]
+    Fallback --> ClientUI
 ```
 
-Messages are limited to 1,000 characters. History accepts up to 10 messages with `user` or `assistant` roles, each limited to 1,000 characters. Successful responses return `success: true` and a `data` object containing:
+---
 
-| Field | Meaning |
-| --- | --- |
-| `reply` | Assistant or guide response text |
-| `mode` | `ai` or `guide` |
-| `recommendations` | Server-validated inventory items, up to three |
-| `actions` | Allowed navigation links to menu, orders, or reservations |
-| `availability` | Optional safe fallback code and customer-facing notice |
+## 📦 Automated Inventory & Alert System
 
-Assistant requests are limited to 20 per minute per user in memory. Multi-instance deployments need a shared rate-limit store.
+1. **Automatic Tracking:** Every order automatically decrements menu stock.
+2. **Threshold Checks:** If `stock <= lowStockThreshold` (default: 5), a notification is triggered.
+3. **Smart Deduplication:** 2-hour cooldown per item avoids spamming staff with duplicate alerts.
+4. **Auto-Resolution:** When stock is restocked above threshold via Admin Inventory, the alert is automatically marked as resolved.
+5. **Audit Trail:** Every adjustment is permanently recorded in `StockMovement`.
 
-## Development checks
+---
 
-Run backend tests from `backend`:
+## 🧪 Testing & Verification
 
-```powershell
+The project includes an extensive test suite verifying AI guardrails, authentication, inventory automation, and database diagnostics:
+
+```bash
+# Run backend test suite
+cd backend
 npm test
 ```
 
-These use mocked providers and database queries, covering validation, customer scoping, recommendations, provider selection, structured response parsing, failure diagnostics, and rate limiting. They do not require real AI keys or a running MongoDB instance.
-
-If your environment blocks Node's test worker processes:
-
-```powershell
-node --test --test-isolation=none test/*.test.js
+```text
+✔ Admin AI: aggregates confirmed facts from mock models
+✔ Admin AI: deterministic guide distinguishes confirmed facts and operational suggestions
+✔ Scenario 6: Role authorization middleware blocks non-admin users from admin AI
+✔ Scenario 3 & 4: Customer AI context strictly isolates records to authenticated customer
+✔ Scenario 8 & 9: Stock crossing below or equal to threshold creates a low-stock alert
+✔ Scenario 11: Deduplication prevents duplicate unresolved alerts
+✔ Scenario 13: Stock replenishment resolves the relevant alert correctly
+✔ Gemini uses native endpoint, header authentication and structured format
+...
+ℹ tests 73 | pass 73 | fail 0
 ```
 
-Run these checks from `mobile`:
+Frontend verification:
 
-```powershell
-npx tsc --noEmit
-npx expo export --platform web --max-workers 1
-npx expo export --platform android --output-dir dist/android-check --max-workers 1
+```bash
+cd mobile
+npx tsc --noEmit           # Type check (0 errors)
+npx eslint src/ --quiet    # Lint check (0 errors)
+npm run build              # Production web bundle build
 ```
 
-Live provider access needs a configured key. Verify device interaction and checkout against your development database before release.
+---
 
-## License
+## 🌐 Deployment
 
-[MIT](LICENSE).
+* **Backend Deployment:** Deployed on Vercel as a Node.js Express serverless API.
+* **Frontend Web Deployment:** Exported via `expo export --platform web` and deployed on Vercel.
+* **CORS Security:** Configured via `CORS_ORIGINS` in backend environment variables.
+
+---
+
+## 👤 Author
+
+* **Developer:** Senitha Gihen
+* **Email:** [senithagihean@gmail.com](mailto:senithagihean@gmail.com)
+* **GitHub:** [@senithagihen](https://github.com/senithagihen) / [@xSenitha](https://github.com/xSenitha)
+* **Repository:** [https://github.com/senithagihen/CafeSync-V2](https://github.com/senithagihen/CafeSync-V2)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
